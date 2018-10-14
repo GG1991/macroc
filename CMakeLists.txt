@@ -12,7 +12,6 @@ else (MPI_FOUND)
 	message(SEND_ERROR "This application cannot compile without MPI")
 endif (MPI_FOUND)
 
-
 if(EXISTS "$ENV{PETSC_DIR}/include/" AND EXISTS "$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include/")
 	set(PETSC_INC "$ENV{PETSC_DIR}/include" "$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include")
 else()
@@ -25,7 +24,20 @@ else()
 	message(SEND_ERROR "PETSc library not found")
 endif()
 
+if(EXISTS "$ENV{MICROPP_DIR}/include/")
+	set(MICROPP_INC "$ENV{MICROPP_DIR}/include")
+else()
+	message(SEND_ERROR "MicroPP includes not found")
+endif()
+
+if(EXISTS "$ENV{MICROPP_DIR}/build_release/libmicropp.a")
+	set(MICROPP_LIB "$ENV{MICROPP_DIR}/build_release/libmicropp.a")
+else()
+	message(SEND_ERROR "MicroPP library not found")
+endif()
+
 # Include Directories (for all targets)
+#include_directories(include ${CMAKE_BINARY_DIR} ${MICROPP_INC} ${PETSC_INC} ${MPI_INCLUDE_PATH})
 include_directories(include ${CMAKE_BINARY_DIR} ${PETSC_INC} ${MPI_INCLUDE_PATH})
 
 # wildcard all the sources in src
