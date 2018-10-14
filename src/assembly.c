@@ -53,6 +53,22 @@ typedef struct {
   PetscScalar uy_dof;
 } ElasticityDOF;
 
+PetscErrorCode init(int nx, int ny, int nz)
+{
+}
+PetscErrorCode set_bc(int time_step)
+{
+}
+PetscErrorCode assembly_jac(void)
+{
+}
+PetscErrorCode assembly_res(void)
+{
+}
+PetscErrorCode solve_Ax(void)
+{
+}
+
 void ConstructQ12D_Ni(PetscScalar _xi[],PetscScalar Ni[])
 {
   PetscScalar xi  = _xi[0];
