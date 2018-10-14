@@ -1,79 +1,33 @@
-static char help[] =  "   Solves the compressible plane strain elasticity equations in 2d on the unit domain using Q1 finite elements. \n\
-   Material properties E (Youngs modulus) and nu (Poisson ratio) may vary as a function of space. \n\
-   The model utilises boundary conditions which produce compression in the x direction. \n\
-Options: \n"
-"\
-     -mx : number of elements in x-direction \n\
-     -my : number of elements in y-direction \n\
-     -c_str : indicates the structure of the coefficients to use. \n"
-"\
-          -c_str 0 => Setup for an isotropic material with constant coefficients. \n\
-                         Parameters: \n\
-                             -iso_E  : Youngs modulus \n\
-                             -iso_nu : Poisson ratio \n\
-          -c_str 1 => Setup for a step function in the material properties in x. \n\
-                         Parameters: \n\
-                              -step_E0  : Youngs modulus to the left of the step \n\
-                              -step_nu0 : Poisson ratio to the left of the step \n\
-                              -step_E1  : Youngs modulus to the right of the step \n\
-                              -step_n1  : Poisson ratio to the right of the step \n\
-                              -step_xc  : x coordinate of the step \n"
-"\
-          -c_str 2 => Setup for a checkerboard material with alternating properties. \n\
-                      Repeats the following pattern throughout the domain. For example with 4 materials specified, we would heve \n\
-                      -------------------------\n\
-                      |  D  |  A  |  B  |  C  |\n\
-                      ------|-----|-----|------\n\
-                      |  C  |  D  |  A  |  B  |\n\
-                      ------|-----|-----|------\n\
-                      |  B  |  C  |  D  |  A  |\n\
-                      ------|-----|-----|------\n\
-                      |  A  |  B  |  C  |  D  |\n\
-                      -------------------------\n\
-                      \n\
-                         Parameters: \n\
-                              -brick_E    : a comma separated list of Young's modulii \n\
-                              -brick_nu   : a comma separated list of Poisson ratios  \n\
-                              -brick_span : the number of elements in x and y each brick will span \n\
-          -c_str 3 => Setup for a sponge-like material with alternating properties. \n\
-                      Repeats the following pattern throughout the domain \n"
-"\
-                      -----------------------------\n\
-                      |       [background]        |\n\
-                      |          E0,nu0           |\n\
-                      |     -----------------     |\n\
-                      |     |  [inclusion]  |     |\n\
-                      |     |    E1,nu1     |     |\n\
-                      |     |               |     |\n\
-                      |     | <---- w ----> |     |\n\
-                      |     |               |     |\n\
-                      |     |               |     |\n\
-                      |     -----------------     |\n\
-                      |                           |\n\
-                      |                           |\n\
-                      -----------------------------\n\
-                      <--------  t + w + t ------->\n\
-                      \n\
-                         Parameters: \n\
-                              -sponge_E0  : Youngs modulus of the surrounding material \n\
-                              -sponge_E1  : Youngs modulus of the inclusion \n\
-                              -sponge_nu0 : Poisson ratio of the surrounding material \n\
-                              -sponge_nu1 : Poisson ratio of the inclusion \n\
-                              -sponge_t   : the number of elements defining the border around each inclusion \n\
-                              -sponge_w   : the number of elements in x and y each inclusion will span\n\
-     -use_gp_coords : Evaluate the Youngs modulus, Poisson ratio and the body force at the global coordinates of the quadrature points.\n\
-     By default, E, nu and the body force are evaulated at the element center and applied as a constant over the entire element.\n\
-     -use_nonsymbc : Option to use non-symmetric boundary condition imposition. This choice will use less memory.";
+/*
+ *  This source code is part of MacroC: a finite element code
+ *  to solve macrostructural problems for composite materials.
+ *
+ *  Copyright (C) - 2018 - Guido Giuntoli <gagiuntoli@gmail.com>
+ *                         Based on the PETSc example develop by:
+ *                         Dave May
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
-/* Contributed by Dave May */
+static char help[] = "FE code to solve macroscopic problems with PETSc.\n";
 
 #include <petscksp.h>
 #include <petscdm.h>
 #include <petscdmda.h>
 
-static PetscErrorCode DMDABCApplyCompression(DM,Mat,Vec);
-static PetscErrorCode DMDABCApplySymmetricCompression(DM elas_da,Mat A,Vec f,IS *dofs,Mat *AA,Vec *ff);
-
+PetscErrorCode DMDABCApplyCompression(DM,Mat,Vec);
+PetscErrorCode DMDABCApplySymmetricCompression(DM elas_da,Mat A,Vec f,IS *dofs,Mat *AA,Vec *ff);
 
 #define NSD            2 /* number of spatial dimensions */
 #define NODES_PER_EL   4 /* nodes per element */
@@ -99,28 +53,7 @@ typedef struct {
   PetscScalar uy_dof;
 } ElasticityDOF;
 
-
-/*
-
- D = E/((1+nu)(1-2nu)) * [ 1-nu   nu        0     ]
-                         [  nu   1-nu       0     ]
-                         [  0     0   0.5*(1-2nu) ]
-
- B = [ d_dx   0   ]
-     [  0    d_dy ]
-     [ d_dy  d_dx ]
-
- */
-
-/* FEM routines */
-/*
- Element: Local basis function ordering
- 1-----2
- |     |
- |     |
- 0-----3
- */
-static void ConstructQ12D_Ni(PetscScalar _xi[],PetscScalar Ni[])
+void ConstructQ12D_Ni(PetscScalar _xi[],PetscScalar Ni[])
 {
   PetscScalar xi  = _xi[0];
   PetscScalar eta = _xi[1];
@@ -131,7 +64,7 @@ static void ConstructQ12D_Ni(PetscScalar _xi[],PetscScalar Ni[])
   Ni[3] = 0.25*(1.0+xi)*(1.0-eta);
 }
 
-static void ConstructQ12D_GNi(PetscScalar _xi[],PetscScalar GNi[][NODES_PER_EL])
+void ConstructQ12D_GNi(PetscScalar _xi[],PetscScalar GNi[][NODES_PER_EL])
 {
   PetscScalar xi  = _xi[0];
   PetscScalar eta = _xi[1];
@@ -147,7 +80,7 @@ static void ConstructQ12D_GNi(PetscScalar _xi[],PetscScalar GNi[][NODES_PER_EL])
   GNi[1][3] = -0.25*(1.0+xi);
 }
 
-static void ConstructQ12D_GNx(PetscScalar GNi[][NODES_PER_EL],PetscScalar GNx[][NODES_PER_EL],PetscScalar coords[],PetscScalar *det_J)
+void ConstructQ12D_GNx(PetscScalar GNi[][NODES_PER_EL],PetscScalar GNx[][NODES_PER_EL],PetscScalar coords[],PetscScalar *det_J)
 {
   PetscScalar J00,J01,J10,J11,J;
   PetscScalar iJ00,iJ01,iJ10,iJ11;
@@ -179,7 +112,7 @@ static void ConstructQ12D_GNx(PetscScalar GNi[][NODES_PER_EL],PetscScalar GNx[][
   if (det_J) *det_J = J;
 }
 
-static void ConstructGaussQuadrature(PetscInt *ngp,PetscScalar gp_xi[][2],PetscScalar gp_weight[])
+void ConstructGaussQuadrature(PetscInt *ngp,PetscScalar gp_xi[][2],PetscScalar gp_weight[])
 {
   *ngp         = 4;
   gp_xi[0][0]  = -0.57735026919;gp_xi[0][1] = -0.57735026919;
@@ -192,7 +125,7 @@ static void ConstructGaussQuadrature(PetscInt *ngp,PetscScalar gp_xi[][2],PetscS
   gp_weight[3] = 1.0;
 }
 
-static PetscErrorCode DMDAGetElementOwnershipRanges2d(DM da,PetscInt **_lx,PetscInt **_ly)
+PetscErrorCode DMDAGetElementOwnershipRanges2d(DM da,PetscInt **_lx,PetscInt **_ly)
 {
   PetscErrorCode ierr;
   PetscMPIInt    rank;
@@ -256,170 +189,8 @@ static PetscErrorCode DMDAGetElementOwnershipRanges2d(DM da,PetscInt **_lx,Petsc
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode DMDACoordViewGnuplot2d(DM da,const char prefix[])
-{
-  DM             cda;
-  Vec            coords;
-  DMDACoor2d     **_coords;
-  PetscInt       si,sj,nx,ny,i,j;
-  FILE           *fp;
-  char           fname[PETSC_MAX_PATH_LEN];
-  PetscMPIInt    rank;
-  PetscErrorCode ierr;
 
-  PetscFunctionBeginUser;
-  ierr = MPI_Comm_rank(PETSC_COMM_WORLD,&rank);CHKERRQ(ierr);
-  ierr = PetscSNPrintf(fname,sizeof(fname),"%s-p%1.4d.dat",prefix,rank);CHKERRQ(ierr);
-  ierr = PetscFOpen(PETSC_COMM_SELF,fname,"w",&fp);CHKERRQ(ierr);
-  if (!fp) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_USER,"Cannot open file");
-  ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"### Element geometry for processor %1.4d ### \n",rank);CHKERRQ(ierr);
-
-  ierr = DMGetCoordinateDM(da,&cda);CHKERRQ(ierr);
-  ierr = DMGetCoordinatesLocal(da,&coords);CHKERRQ(ierr);
-  ierr = DMDAVecGetArray(cda,coords,&_coords);CHKERRQ(ierr);
-  ierr = DMDAGetGhostCorners(cda,&si,&sj,0,&nx,&ny,0);CHKERRQ(ierr);
-  for (j = sj; j < sj+ny-1; j++) {
-    for (i = si; i < si+nx-1; i++) {
-      ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"%1.6e %1.6e \n",PetscRealPart(_coords[j][i].x),PetscRealPart(_coords[j][i].y));CHKERRQ(ierr);
-      ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"%1.6e %1.6e \n",PetscRealPart(_coords[j+1][i].x),PetscRealPart(_coords[j+1][i].y));CHKERRQ(ierr);
-      ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"%1.6e %1.6e \n",PetscRealPart(_coords[j+1][i+1].x),PetscRealPart(_coords[j+1][i+1].y));CHKERRQ(ierr);
-      ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"%1.6e %1.6e \n",PetscRealPart(_coords[j][i+1].x),PetscRealPart(_coords[j][i+1].y));CHKERRQ(ierr);
-      ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"%1.6e %1.6e \n\n",PetscRealPart(_coords[j][i].x),PetscRealPart(_coords[j][i].y));CHKERRQ(ierr);
-    }
-  }
-  ierr = DMDAVecRestoreArray(cda,coords,&_coords);CHKERRQ(ierr);
-
-  ierr = PetscFClose(PETSC_COMM_SELF,fp);CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-static PetscErrorCode DMDAViewGnuplot2d(DM da,Vec fields,const char comment[],const char prefix[])
-{
-  DM             cda;
-  Vec            coords,local_fields;
-  DMDACoor2d     **_coords;
-  FILE           *fp;
-  char           fname[PETSC_MAX_PATH_LEN];
-  const char     *field_name;
-  PetscMPIInt    rank;
-  PetscInt       si,sj,nx,ny,i,j;
-  PetscInt       n_dofs,d;
-  PetscScalar    *_fields;
-  PetscErrorCode ierr;
-
-  PetscFunctionBeginUser;
-  MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
-  ierr = PetscSNPrintf(fname,sizeof(fname),"%s-p%1.4d.dat",prefix,rank);CHKERRQ(ierr);
-  ierr = PetscFOpen(PETSC_COMM_SELF,fname,"w",&fp);CHKERRQ(ierr);
-  if (!fp) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_USER,"Cannot open file");
-
-  ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"### %s (processor %1.4d) ### \n",comment,rank);CHKERRQ(ierr);
-  ierr = DMDAGetInfo(da,0,0,0,0,0,0,0,&n_dofs,0,0,0,0,0);CHKERRQ(ierr);
-  ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"### x y ");CHKERRQ(ierr);
-  for (d = 0; d < n_dofs; d++) {
-    ierr = DMDAGetFieldName(da,d,&field_name);CHKERRQ(ierr);
-    ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"%s ",field_name);CHKERRQ(ierr);
-  }
-  ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"###\n");CHKERRQ(ierr);
-
-
-  ierr = DMGetCoordinateDM(da,&cda);CHKERRQ(ierr);
-  ierr = DMGetCoordinatesLocal(da,&coords);CHKERRQ(ierr);
-  ierr = DMDAVecGetArray(cda,coords,&_coords);CHKERRQ(ierr);
-  ierr = DMDAGetGhostCorners(cda,&si,&sj,0,&nx,&ny,0);CHKERRQ(ierr);
-
-  ierr = DMCreateLocalVector(da,&local_fields);CHKERRQ(ierr);
-  ierr = DMGlobalToLocalBegin(da,fields,INSERT_VALUES,local_fields);CHKERRQ(ierr);
-  ierr = DMGlobalToLocalEnd(da,fields,INSERT_VALUES,local_fields);CHKERRQ(ierr);
-  ierr = VecGetArray(local_fields,&_fields);CHKERRQ(ierr);
-
-  for (j = sj; j < sj+ny; j++) {
-    for (i = si; i < si+nx; i++) {
-      PetscScalar coord_x,coord_y;
-      PetscScalar field_d;
-
-      coord_x = _coords[j][i].x;
-      coord_y = _coords[j][i].y;
-
-      ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"%1.6e %1.6e ",PetscRealPart(coord_x),PetscRealPart(coord_y));CHKERRQ(ierr);
-      for (d = 0; d < n_dofs; d++) {
-        field_d = _fields[n_dofs*((i-si)+(j-sj)*(nx))+d];
-        ierr    = PetscFPrintf(PETSC_COMM_SELF,fp,"%1.6e ",PetscRealPart(field_d));CHKERRQ(ierr);
-      }
-      ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"\n");CHKERRQ(ierr);
-    }
-  }
-  ierr = VecRestoreArray(local_fields,&_fields);CHKERRQ(ierr);
-  ierr = VecDestroy(&local_fields);CHKERRQ(ierr);
-
-  ierr = DMDAVecRestoreArray(cda,coords,&_coords);CHKERRQ(ierr);
-
-  ierr = PetscFClose(PETSC_COMM_SELF,fp);CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-static PetscErrorCode DMDAViewCoefficientsGnuplot2d(DM da,Vec fields,const char comment[],const char prefix[])
-{
-  DM                     cda;
-  Vec                    local_fields;
-  FILE                   *fp;
-  char                   fname[PETSC_MAX_PATH_LEN];
-  const char             *field_name;
-  PetscMPIInt            rank;
-  PetscInt               si,sj,nx,ny,i,j,p;
-  PetscInt               n_dofs,d;
-  GaussPointCoefficients **_coefficients;
-  PetscErrorCode         ierr;
-
-  PetscFunctionBeginUser;
-  ierr = MPI_Comm_rank(PETSC_COMM_WORLD,&rank);CHKERRQ(ierr);
-  ierr = PetscSNPrintf(fname,sizeof(fname),"%s-p%1.4d.dat",prefix,rank);CHKERRQ(ierr);
-  ierr = PetscFOpen(PETSC_COMM_SELF,fname,"w",&fp);CHKERRQ(ierr);
-  if (!fp) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_USER,"Cannot open file");
-
-  ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"### %s (processor %1.4d) ### \n",comment,rank);CHKERRQ(ierr);
-  ierr = DMDAGetInfo(da,0,0,0,0,0,0,0,&n_dofs,0,0,0,0,0);CHKERRQ(ierr);
-  ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"### x y ");CHKERRQ(ierr);
-  for (d = 0; d < n_dofs; d++) {
-    ierr = DMDAGetFieldName(da,d,&field_name);CHKERRQ(ierr);
-    ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"%s ",field_name);CHKERRQ(ierr);
-  }
-  ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"###\n");CHKERRQ(ierr);
-
-
-  ierr = DMGetCoordinateDM(da,&cda);CHKERRQ(ierr);
-  ierr = DMDAGetGhostCorners(cda,&si,&sj,0,&nx,&ny,0);CHKERRQ(ierr);
-
-  ierr = DMCreateLocalVector(da,&local_fields);CHKERRQ(ierr);
-  ierr = DMGlobalToLocalBegin(da,fields,INSERT_VALUES,local_fields);CHKERRQ(ierr);
-  ierr = DMGlobalToLocalEnd(da,fields,INSERT_VALUES,local_fields);CHKERRQ(ierr);
-  ierr = DMDAVecGetArray(da,local_fields,&_coefficients);CHKERRQ(ierr);
-
-  for (j = sj; j < sj+ny; j++) {
-    for (i = si; i < si+nx; i++) {
-      PetscScalar coord_x,coord_y;
-
-      for (p = 0; p < GAUSS_POINTS; p++) {
-        coord_x = _coefficients[j][i].gp_coords[2*p];
-        coord_y = _coefficients[j][i].gp_coords[2*p+1];
-
-        ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"%1.6e %1.6e ",PetscRealPart(coord_x),PetscRealPart(coord_y));CHKERRQ(ierr);
-
-        ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"%1.6e %1.6e %1.6e %1.6e",
-                            PetscRealPart(_coefficients[j][i].E[p]),PetscRealPart(_coefficients[j][i].nu[p]),
-                            PetscRealPart(_coefficients[j][i].fx[p]),PetscRealPart(_coefficients[j][i].fy[p]));CHKERRQ(ierr);
-        ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"\n");CHKERRQ(ierr);
-      }
-    }
-  }
-  ierr = DMDAVecRestoreArray(da,local_fields,&_coefficients);CHKERRQ(ierr);
-  ierr = VecDestroy(&local_fields);CHKERRQ(ierr);
-
-  ierr = PetscFClose(PETSC_COMM_SELF,fp);CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-static void FormStressOperatorQ1(PetscScalar Ke[],PetscScalar coords[],PetscScalar E[],PetscScalar nu[])
+void FormStressOperatorQ1(PetscScalar Ke[],PetscScalar coords[],PetscScalar E[],PetscScalar nu[])
 {
   PetscInt    ngp;
   PetscScalar gp_xi[GAUSS_POINTS][2];
@@ -478,7 +249,7 @@ static void FormStressOperatorQ1(PetscScalar Ke[],PetscScalar coords[],PetscScal
   } /* end quadrature */
 }
 
-static void FormMomentumRhsQ1(PetscScalar Fe[],PetscScalar coords[],PetscScalar fx[],PetscScalar fy[])
+void FormMomentumRhsQ1(PetscScalar Fe[],PetscScalar coords[],PetscScalar fx[],PetscScalar fy[])
 {
   PetscInt    ngp;
   PetscScalar gp_xi[GAUSS_POINTS][2];
@@ -510,7 +281,7 @@ static void FormMomentumRhsQ1(PetscScalar Fe[],PetscScalar coords[],PetscScalar 
  The unknown is a vector quantity.
  The s[].c is used to indicate the degree of freedom.
  */
-static PetscErrorCode DMDAGetElementEqnums_u(MatStencil s_u[],PetscInt i,PetscInt j)
+PetscErrorCode DMDAGetElementEqnums_u(MatStencil s_u[],PetscInt i,PetscInt j)
 {
   PetscFunctionBeginUser;
   /* displacement */
@@ -532,7 +303,7 @@ static PetscErrorCode DMDAGetElementEqnums_u(MatStencil s_u[],PetscInt i,PetscIn
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode GetElementCoords(DMDACoor2d **_coords,PetscInt ei,PetscInt ej,PetscScalar el_coords[])
+PetscErrorCode GetElementCoords(DMDACoor2d **_coords,PetscInt ei,PetscInt ej,PetscScalar el_coords[])
 {
   PetscFunctionBeginUser;
   /* get coords for the element */
@@ -543,7 +314,7 @@ static PetscErrorCode GetElementCoords(DMDACoor2d **_coords,PetscInt ei,PetscInt
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode AssembleA_Elasticity(Mat A,DM elas_da,DM properties_da,Vec properties)
+PetscErrorCode AssembleA_Elasticity(Mat A,DM elas_da,DM properties_da,Vec properties)
 {
   DM                     cda;
   Vec                    coords;
@@ -602,8 +373,7 @@ static PetscErrorCode AssembleA_Elasticity(Mat A,DM elas_da,DM properties_da,Vec
   PetscFunctionReturn(0);
 }
 
-
-static PetscErrorCode DMDASetValuesLocalStencil_ADD_VALUES(ElasticityDOF **fields_F,MatStencil u_eqn[],PetscScalar Fe_u[])
+PetscErrorCode DMDASetValuesLocalStencil_ADD_VALUES(ElasticityDOF **fields_F,MatStencil u_eqn[],PetscScalar Fe_u[])
 {
   PetscInt n;
 
@@ -615,7 +385,7 @@ static PetscErrorCode DMDASetValuesLocalStencil_ADD_VALUES(ElasticityDOF **field
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode AssembleF_Elasticity(Vec F,DM elas_da,DM properties_da,Vec properties)
+PetscErrorCode AssembleF_Elasticity(Vec F,DM elas_da,DM properties_da,Vec properties)
 {
   DM                     cda;
   Vec                    coords;
@@ -685,7 +455,7 @@ static PetscErrorCode AssembleF_Elasticity(Vec F,DM elas_da,DM properties_da,Vec
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode solve_elasticity_2d(PetscInt mx,PetscInt my)
+PetscErrorCode solve_elasticity_2d(PetscInt mx,PetscInt my)
 {
   DM                     elas_da,da_prop;
   PetscInt               u_dof,dof,stencil_width;
@@ -937,12 +707,6 @@ static PetscErrorCode solve_elasticity_2d(PetscInt mx,PetscInt my)
   ierr = DMLocalToGlobalBegin(da_prop,l_properties,ADD_VALUES,properties);CHKERRQ(ierr);
   ierr = DMLocalToGlobalEnd(da_prop,l_properties,ADD_VALUES,properties);CHKERRQ(ierr);
 
-  ierr = PetscOptionsGetBool(NULL,NULL,"-no_view",&no_view,NULL);CHKERRQ(ierr);
-  if (!no_view) {
-    ierr = DMDAViewCoefficientsGnuplot2d(da_prop,properties,"Coeffcients for elasticity eqn.","properties");CHKERRQ(ierr);
-    ierr = DMDACoordViewGnuplot2d(elas_da,"mesh");CHKERRQ(ierr);
-  }
-
   /* Generate a matrix with the correct non-zero pattern of type AIJ. This will work in parallel and serial */
   ierr = DMCreateMatrix(elas_da,&A);CHKERRQ(ierr);
   ierr = DMGetCoordinates(elas_da,&vel_coords);CHKERRQ(ierr);
@@ -999,7 +763,6 @@ static PetscErrorCode solve_elasticity_2d(PetscInt mx,PetscInt my)
     ierr = KSPSolve(ksp_E,f,X);CHKERRQ(ierr);
   }
 
-  if (!no_view) {ierr = DMDAViewGnuplot2d(elas_da,X,"Displacement solution for elasticity eqn.","X");CHKERRQ(ierr);}
   ierr = KSPDestroy(&ksp_E);CHKERRQ(ierr);
 
   ierr = VecDestroy(&X);CHKERRQ(ierr);
@@ -1030,7 +793,7 @@ int main(int argc,char **args)
 
 /* -------------------------- helpers for boundary conditions -------------------------------- */
 
-static PetscErrorCode BCApply_EAST(DM da,PetscInt d_idx,PetscScalar bc_val,Mat A,Vec b)
+PetscErrorCode BCApply_EAST(DM da,PetscInt d_idx,PetscScalar bc_val,Mat A,Vec b)
 {
   DM                     cda;
   Vec                    coords;
@@ -1098,7 +861,7 @@ static PetscErrorCode BCApply_EAST(DM da,PetscInt d_idx,PetscScalar bc_val,Mat A
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode BCApply_WEST(DM da,PetscInt d_idx,PetscScalar bc_val,Mat A,Vec b)
+PetscErrorCode BCApply_WEST(DM da,PetscInt d_idx,PetscScalar bc_val,Mat A,Vec b)
 {
   DM                     cda;
   Vec                    coords;
@@ -1166,7 +929,7 @@ static PetscErrorCode BCApply_WEST(DM da,PetscInt d_idx,PetscScalar bc_val,Mat A
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode DMDABCApplyCompression(DM elas_da,Mat A,Vec f)
+PetscErrorCode DMDABCApplyCompression(DM elas_da,Mat A,Vec f)
 {
   PetscErrorCode ierr;
 
@@ -1178,7 +941,7 @@ static PetscErrorCode DMDABCApplyCompression(DM elas_da,Mat A,Vec f)
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode Orthogonalize(PetscInt n,Vec *vecs)
+PetscErrorCode Orthogonalize(PetscInt n,Vec *vecs)
 {
   PetscInt       i,j;
   PetscScalar    dot;
@@ -1195,7 +958,7 @@ static PetscErrorCode Orthogonalize(PetscInt n,Vec *vecs)
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode DMDABCApplySymmetricCompression(DM elas_da,Mat A,Vec f,IS *dofs,Mat *AA,Vec *ff)
+PetscErrorCode DMDABCApplySymmetricCompression(DM elas_da,Mat A,Vec f,IS *dofs,Mat *AA,Vec *ff)
 {
   PetscErrorCode ierr;
   PetscInt       start,end,m;
@@ -1278,90 +1041,3 @@ static PetscErrorCode DMDABCApplySymmetricCompression(DM elas_da,Mat A,Vec f,IS 
   ierr  = VecDestroy(&x);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
-
-
-/*TEST
-
-   build:
-      requires: !complex !single
-
-   test:
-      args: -mx 20 -my 30 -elas_ksp_monitor_short -no_view -c_str 3 -sponge_E0 1 -sponge_E1 1000 -sponge_nu0 0.4 -sponge_nu1 0.2 -sponge_t 1 -sponge_w 8 -elas_ksp_rtol 5e-3 -elas_ksp_view
-      output_file: output/ex49_1.out
-
-   test:
-      suffix: 2
-      nsize: 4
-      args: -mx 20 -my 30 -elas_ksp_monitor_short -no_view -c_str 3 -sponge_E0 1 -sponge_E1 1000 -sponge_nu0 0.4 -sponge_nu1 0.2 -sponge_t 1 -sponge_w 8 -elas_ksp_type gcr -elas_pc_type asm -elas_sub_pc_type lu -elas_ksp_rtol 5e-3
-
-   test:
-      suffix: 3
-      nsize: 4
-      args: -mx 20 -my 30 -elas_ksp_monitor_short -no_view -c_str 2 -brick_E 1,10,1000,100 -brick_nu 0.4,0.2,0.3,0.1 -brick_span 3 -elas_pc_type asm -elas_sub_pc_type lu -elas_ksp_rtol 5e-3
-
-   test:
-      suffix: 4
-      nsize: 4
-      args: -elas_ksp_monitor_short -elas_ksp_converged_reason -elas_ksp_type cg -elas_ksp_norm_type unpreconditioned -mx 40 -my 40 -c_str 2 -brick_E 1,1e-6,1e-2 -brick_nu .3,.2,.4 -brick_span 8 -elas_mg_levels_ksp_type chebyshev -elas_pc_type ml -elas_mg_levels_ksp_chebyshev_esteig 0,0.2,0,1.1 -elas_mg_levels_pc_type pbjacobi -elas_mg_levels_ksp_max_it 2 -use_nonsymbc -elas_pc_ml_nullspace user
-      requires: ml
-
-   test:
-      suffix: 5
-      nsize: 3
-      args: -elas_ksp_monitor_short -elas_ksp_converged_reason -elas_ksp_type cg -elas_ksp_norm_type natural -mx 22 -my 22 -c_str 2 -brick_E 1,1e-6,1e-2 -brick_nu .3,.2,.4 -brick_span 8 -elas_pc_type gamg -elas_mg_levels_ksp_type chebyshev -elas_mg_levels_ksp_max_it 1 -elas_mg_levels_ksp_chebyshev_esteig 0.2,1.1 -elas_mg_levels_pc_type jacobi
-
-   test:
-      suffix: 6
-      nsize: 4
-      args: -mx 20 -my 30 -elas_ksp_monitor_short -no_view -c_str 3 -sponge_E0 1 -sponge_E1 1000 -sponge_nu0 0.4 -sponge_nu1 0.2 -sponge_t 1 -sponge_w 8 -elas_ksp_type pipegcr -elas_pc_type asm -elas_sub_pc_type lu
-
-   test:
-      suffix: 7
-      nsize: 4
-      args: -mx 20 -my 30 -elas_ksp_monitor_short -no_view -c_str 3 -sponge_E0 1 -sponge_E1 1000 -sponge_nu0 0.4 -sponge_nu1 0.2 -sponge_t 1 -sponge_w 8 -elas_ksp_type pipegcr -elas_pc_type asm -elas_sub_pc_type ksp -elas_sub_ksp_ksp_type cg -elas_sub_ksp_ksp_max_it 15
-
-   test:
-      suffix: 8
-      nsize: 4
-      args: -mx 20 -my 30 -elas_ksp_monitor_short -no_view -c_str 3 -sponge_E0 1 -sponge_E1 1000 -sponge_nu0 0.4 -sponge_nu1 0.2 -sponge_t 1 -sponge_w 8 -elas_ksp_type pipefgmres -elas_pc_type asm -elas_sub_pc_type ksp -elas_sub_ksp_ksp_type cg -elas_sub_ksp_ksp_max_it 15
-
-   test:
-      suffix: hypre_nullspace
-      requires: hypre
-      args: -elas_ksp_monitor_short -elas_ksp_converged_reason -elas_ksp_type cg -elas_ksp_norm_type natural -mx 22 -my 22 -c_str 2 -brick_E 1,1e-6,1e-2 -brick_nu .3,.2,.4 -brick_span 8 -elas_pc_type hypre -elas_pc_hypre_boomeramg_nodal_coarsen 6 -elas_pc_hypre_boomeramg_vec_interp_variant 3 -elas_ksp_view
-
-   test:
-      nsize: 4
-      suffix: bddc
-      args: -elas_ksp_monitor_short -no_view -elas_ksp_converged_reason -elas_ksp_type cg -elas_ksp_norm_type natural -mx 22 -my 22 -dm_mat_type is -elas_pc_type bddc -elas_pc_bddc_monolithic
-
-   test:
-      nsize: 4
-      suffix: bddc_unsym
-      args: -elas_ksp_monitor_short -no_view -elas_ksp_converged_reason -elas_ksp_type cg -elas_ksp_norm_type natural -mx 22 -my 22 -dm_mat_type is -elas_pc_type bddc -elas_pc_bddc_monolithic -use_nonsymbc -elas_pc_bddc_symmetric 0
-
-   test:
-      nsize: 4
-      suffix: bddc_unsym_deluxe
-      args: -elas_ksp_monitor_short -no_view -elas_ksp_converged_reason -elas_ksp_type cg -elas_ksp_norm_type natural -mx 22 -my 22 -dm_mat_type is -elas_pc_type bddc -elas_pc_bddc_monolithic -use_nonsymbc -elas_pc_bddc_symmetric 0 -elas_pc_bddc_use_deluxe_scaling -elas_sub_schurs_symmetric 0
-
-   test:
-      nsize: 4
-      suffix: fetidp_unsym_deluxe
-      args: -elas_ksp_monitor_short -no_view -elas_ksp_converged_reason -elas_ksp_type fetidp -elas_fetidp_ksp_type cg -elas_ksp_norm_type natural -mx 22 -my 22 -dm_mat_type is -elas_fetidp_bddc_pc_bddc_monolithic -use_nonsymbc -elas_fetidp_bddc_pc_bddc_use_deluxe_scaling -elas_fetidp_bddc_sub_schurs_symmetric 0 -elas_fetidp_bddc_pc_bddc_deluxe_singlemat
-
-   test:
-      nsize: 4
-      suffix: bddc_layerjump
-      args: -mx 40 -my 40 -elas_ksp_monitor_short -no_view -c_str 3 -sponge_E0 1 -sponge_E1 1000 -sponge_nu0 0.4 -sponge_nu1 0.2 -sponge_t 1 -sponge_w 8 -elas_ksp_type cg -elas_pc_type bddc -elas_pc_bddc_monolithic -dm_mat_type is -elas_ksp_norm_type natural
-
-   test:
-      nsize: 4
-      suffix: bddc_subdomainjump
-      args: -mx 40 -my 40 -elas_ksp_monitor_short -no_view -c_str 2 -brick_E 1,1000 -brick_nu 0.4,0.2 -brick_span 20  -elas_ksp_type cg -elas_pc_type bddc -elas_pc_bddc_monolithic -dm_mat_type is -elas_pc_is_use_stiffness_scaling -elas_ksp_norm_type natural
-
-   test:
-      nsize: 9
-      suffix: bddc_subdomainjump_deluxe
-      args: -mx 30 -my 30 -elas_ksp_monitor_short -no_view -c_str 2 -brick_E 1,1000 -brick_nu 0.4,0.2 -brick_span 10  -elas_ksp_type cg -elas_pc_type bddc -elas_pc_bddc_monolithic -dm_mat_type is -elas_pc_bddc_use_deluxe_scaling -elas_ksp_norm_type natural -elas_pc_bddc_schur_layers 1
-TEST*/
