@@ -27,21 +27,16 @@
 int main(int argc,char **args)
 {
   	int ierr;
-  	int nx = 10, ny = 10, nz = 10;
-  	int time_s, newton_it, tsteps = 1;
+  	int time_s, newton_it;
 	double norm;
   	char mess[64];
 
   	ierr = PetscInitialize(&argc,&args,(char*)0,help); if(ierr) return ierr;
-  	ierr = PetscOptionsGetInt(NULL,NULL,"-nx",&nx,NULL);CHKERRQ(ierr);
-  	ierr = PetscOptionsGetInt(NULL,NULL,"-ny",&ny,NULL);CHKERRQ(ierr);
-  	ierr = PetscOptionsGetInt(NULL,NULL,"-zy",&nz,NULL);CHKERRQ(ierr);
-  	ierr = PetscOptionsGetInt(NULL,NULL,"-ts",&tsteps,NULL);CHKERRQ(ierr);
 
   	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   	MPI_Comm_size(MPI_COMM_WORLD, &nproc);
 
-  	ierr = init(nx, ny, nz);
+  	ierr = init();
 
   	sprintf(mess, "Problem size %d\n", nproc);
   	print0(mess);
@@ -52,6 +47,8 @@ int main(int argc,char **args)
 
         newton_it = 0;
   		while(newton_it < NEWTON_ITS ) {
+
+  			ierr = set_strains();
 
 	  		ierr = assembly_res();
         	/* norm = |b| */
@@ -64,7 +61,7 @@ int main(int argc,char **args)
         }
   	}
 
-  	ierr = solve_elasticity_2d(nx,ny);CHKERRQ(ierr);
+//    ierr = solve_elasticity_2d(nx,ny);CHKERRQ(ierr);
   	ierr = PetscFinalize();
   	return ierr;
 }

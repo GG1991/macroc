@@ -29,6 +29,8 @@
 #include <petscdm.h>
 #include <petscdmda.h>
 
+#define NGP        8
+#define NPE        8
 #define NEWTON_TOL 1.0e-1
 #define NEWTON_ITS 4
 
@@ -37,11 +39,24 @@
 static char help[] = "FE code to solve macroscopic problems with PETSc.\n";
 int rank, nproc;
 
+int nx, ny, nz, nx_local, ny_local, nz_local;
+int nex, ney, nez, nex_local, ney_local, nez_local;
+int nelem, nelem_local;
+int ngp_local;
+int tsteps;
+
+double lx, ly, lz, dx, dy, dz;
+
+DM DA;
+Mat A;
+Vec u, du, b;
+
 PetscErrorCode solve_elasticity_2d(PetscInt mx,PetscInt my);
-int init(int nx, int ny, int nz);
-PetscErrorCode set_bc(int time_step);
-PetscErrorCode assembly_jac(void);
-PetscErrorCode assembly_res(void);
-PetscErrorCode solve_Ax(void);
+int init();
+int set_bc(int time_step);
+int set_strains();
+int assembly_jac();
+int assembly_res();
+int solve_Ax();
 
 #endif

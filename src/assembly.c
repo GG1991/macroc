@@ -54,9 +54,37 @@ typedef struct {
   PetscScalar uy_dof;
 } ElasticityDOF;
 
-int init(int nx, int ny, int nz)
-{
 
+int init()
+{
+	int ierr;
+  	char mess[64];
+
+	tsteps = 1;
+  	nx = 10; ny = 10; nz = 10;
+  	lx = 1.; ly = 1.; lz = 1.;
+  	ierr = PetscOptionsGetInt(NULL, NULL, "-nx", &nx, NULL); CHKERRQ(ierr);
+  	ierr = PetscOptionsGetInt(NULL, NULL, "-ny", &ny, NULL); CHKERRQ(ierr);
+  	ierr = PetscOptionsGetInt(NULL, NULL, "-nz", &nz, NULL); CHKERRQ(ierr);
+  	ierr = PetscOptionsGetInt(NULL, NULL, "-ts", &tsteps, NULL); CHKERRQ(ierr);
+    nex = nx - 1; ney = ny - 1; nez = nz - 1;
+    dx = lx / nex; dy = ly / ney; dz = lz / nez;
+    nelem = nex * ney * nez;
+
+  	sprintf(mess, "Number Of Elements: %d\n", nelem);
+  	print0(mess);
+
+	DMBoundaryType bx = DM_BOUNDARY_NONE, by = DM_BOUNDARY_NONE, bz = DM_BOUNDARY_NONE;
+    DMDAStencilType stype = DMDA_STENCIL_STAR;
+
+    ierr = DMDACreate3d(PETSC_COMM_WORLD, bx, by, bz, stype, nx, ny, nz,
+    					PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,
+    					3, 1, NULL, NULL, NULL, &DA);
+
+    nex_local = nx_local - 1; ney_local = ny_local - 1; nez_local = nz_local - 1;
+	nelem_local = nex_local * ney_local * nez_local;
+    ngp_local = nelem_local * NGP;
+    
     // This initializes <materials> declared in micropp_c_wrapper.h
     micropp_C_material_create();
     micropp_C_material_set(0, 1.0e7, 0.25, 1.0e4, 1.0e7, 0);
@@ -67,32 +95,94 @@ int init(int nx, int ny, int nz)
     	micropp_C_material_print(1);
     }
 
-	int ngp = 10;
+    // This initializes <micro> declared in micropp_c_wrapper.h
+    // and uses the previous <materials> global array
+    ngp_local = 1; // TODO
 	int size[3] = { 10, 10, 10 };
 	int type = 1;
 	double params[4] = { 1., 1., 1., .5 };
-    // This initializes <micro> declared in micropp_c_wrapper.h
-    // and uses the previous <materials> global array
-    micropp_C_create3(ngp, size, type, params);
+    micropp_C_create3(ngp_local, size, type, params);
+
+    return ierr;
 }
 
 
-PetscErrorCode set_bc(int time_step)
+int set_bc(int time_step)
 {
 }
 
 
-PetscErrorCode assembly_jac(void)
+int set_strains()
 {
+	int ex, ey, ez, gp;
+	int ierr = 0;
+	double strain[6];
+
+	for(ex = 0; ex < nex_local; ++ex) {
+		for(ey = 0; ey < ney_local; ++ey) {
+			for(ez = 0; ex < nez_local; ++ez) {
+
+				for(gp = 0; gp < NGP; ++gp) {
+
+					micropp_C_set_strain3(gp, strain);
+
+				}
+
+			}
+		}
+	}
+
+	return ierr;
 }
 
 
-PetscErrorCode assembly_res(void)
+int assembly_jac(void)
 {
+	int ex, ey, ez, gp;
+	int ierr = 0;
+	double ctan[36];
+
+	for(ex = 0; ex < nex_local; ++ex) {
+		for(ey = 0; ey < ney_local; ++ey) {
+			for(ez = 0; ex < nez_local; ++ez) {
+
+				for(gp = 0; gp < NGP; ++gp) {
+
+					micropp_C_get_ctan3(gp, ctan);
+
+				}
+
+			}
+		}
+	}
+
+	return ierr;
 }
 
 
-PetscErrorCode solve_Ax(void)
+int assembly_res(void)
+{
+	int ex, ey, ez, gp;
+	int ierr = 0;
+	double stress[6];
+
+	for(ex = 0; ex < nex_local; ++ex) {
+		for(ey = 0; ey < ney_local; ++ey) {
+			for(ez = 0; ex < nez_local; ++ez) {
+
+				for(gp = 0; gp < NGP; ++gp) {
+
+					micropp_C_get_stress3(gp, stress);
+
+				}
+
+			}
+		}
+	}
+}
+
+
+int solve_Ax(void)
 {
 }
 
@@ -275,11 +365,6 @@ void FormStressOperatorQ1(PetscScalar Ke[],PetscScalar coords[],PetscScalar E[],
       }
     }
 
-    /* form Bt tildeD B */
-    /*
-     Ke_ij = Bt_ik . D_kl . B_lj
-     = B_ki . D_kl . B_lj
-     */
     for (i = 0; i < 8; i++) {
       for (j = 0; j < 8; j++) {
         for (k = 0; k < 3; k++) {
