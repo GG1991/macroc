@@ -27,22 +27,21 @@ endif()
 if(EXISTS "$ENV{MICROPP_DIR}/include/")
 	set(MICROPP_INC "$ENV{MICROPP_DIR}/include")
 else()
-	message(SEND_ERROR "MicroPP includes not found")
+	message(SEND_ERROR "MicroPP includes not found. Probably you should set MICROPP_DIR env variable.")
 endif()
 
 if(EXISTS "$ENV{MICROPP_DIR}/build_release/libmicropp.a")
 	set(MICROPP_LIB "$ENV{MICROPP_DIR}/build_release/libmicropp.a")
 else()
-	message(SEND_ERROR "MicroPP library not found")
+	message(SEND_ERROR "MicroPP library not found. Probably you should set MICROPP_DIR env variable.")
 endif()
 
 # Include Directories (for all targets)
-#include_directories(include ${CMAKE_BINARY_DIR} ${MICROPP_INC} ${PETSC_INC} ${MPI_INCLUDE_PATH})
-include_directories(include ${CMAKE_BINARY_DIR} ${PETSC_INC} ${MPI_INCLUDE_PATH})
+include_directories(include ${CMAKE_BINARY_DIR} ${MICROPP_INC} ${PETSC_INC} ${MPI_INCLUDE_PATH})
 
 # wildcard all the sources in src
 file(GLOB SOURCES src/*.c)
 
-link_libraries("-lm" ${PETSC_LIB} ${MPI_LIBRARIES})
+link_libraries("-lm" "-lstdc++" ${PETSC_LIB} ${MPI_LIBRARIES} ${MICROPP_LIB})
 
 add_executable(macroc ${SOURCES})

@@ -25,7 +25,7 @@ static char help[] = "FE code to solve macroscopic problems with PETSc.\n";
 #include <petscksp.h>
 #include <petscdm.h>
 #include <petscdmda.h>
-#include "c_wrapper.h"
+#include "micropp_c_wrapper.h"
 
 PetscErrorCode DMDABCApplyCompression(DM,Mat,Vec);
 PetscErrorCode DMDABCApplySymmetricCompression(DM elas_da,Mat A,Vec f,IS *dofs,Mat *AA,Vec *ff);
@@ -65,6 +65,8 @@ PetscErrorCode init(int nx, int ny, int nz)
 	double params[4] = { 1., 1., 1., .5 };
 
 //    micro3* micro = init3_(&dim, &ngp, size, &micro_type, micro_params, mat_types, params);
+    material_t *material;
+    micropp_C_material_set(material, 1.0e7, 0.25, 1.0e4, 1.0e7, 1);
 }
 
 

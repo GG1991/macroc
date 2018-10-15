@@ -27,3 +27,15 @@ Build MacroC with CMake:
 4. `cd build`
 5. `cmake ..`
 6. `make`
+
+To build the optimized version:
+
+```bash
+cmake -DCMAKE_BUILD_TYPE=Release ..
+```
+
+and the debug version:
+
+```bash
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+```
