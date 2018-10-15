@@ -81,9 +81,17 @@ int init()
     ierr = DMSetUp(DA); CHKERRQ(ierr);
     ierr = DMCreateGlobalVector(DA, &u);CHKERRQ(ierr);
 
+    int sx, sy, sz;
+    ierr = DMDAGetGhostCorners(DA,&sx,&sy,&sz, &nxl, &nyl, &nzl);CHKERRQ(ierr);
+    //printf("rank %d - sx: %d - sy: %d - sz: %d - nxl: %d - nyl: %d - nzl: %d\n", rank, sx, sy, sz, nxl, nyl, nzl);
+
+    int nexl, neyl, nezl;
+    ierr = DMDAGetElementsSizes(DA, &nexl, &neyl, &nezl);
+    printf("rank %d - nexl: %d - neyl: %d - nezl: %d\n", rank, nexl, neyl, nezl);
+
     int start, end;
     ierr = VecGetOwnershipRange(u,&start,&end);CHKERRQ(ierr);
-    sprintf(mess, "rank %d - start: %d - end: %d\n", rank, start, end); print0(mess);
+    printf("rank %d - start: %d - end: %d\n", rank, start, end);
 
     // This initializes <materials> declared in micropp_c_wrapper.h
     micropp_C_material_create();

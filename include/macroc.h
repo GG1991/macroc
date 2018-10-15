@@ -39,7 +39,7 @@
 static char help[] = "FE code to solve macroscopic problems with PETSc.\n";
 int rank, nproc, nproc_x, nproc_y, nproc_z;
 
-int nx, ny, nz, nx_local, ny_local, nz_local;
+int nx, ny, nz, nxl, nyl, nzl;
 int nex, ney, nez, nex_local, ney_local, nez_local;
 int nelem, nelem_local;
 int ngp_local;
