@@ -38,7 +38,7 @@ static char help[] = "FE code to solve macroscopic problems with PETSc.\n";
 int rank, nproc;
 
 PetscErrorCode solve_elasticity_2d(PetscInt mx,PetscInt my);
-PetscErrorCode init(int nx, int ny, int nz);
+int init(int nx, int ny, int nz);
 PetscErrorCode set_bc(int time_step);
 PetscErrorCode assembly_jac(void);
 PetscErrorCode assembly_res(void);

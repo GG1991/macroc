@@ -54,26 +54,26 @@ typedef struct {
   PetscScalar uy_dof;
 } ElasticityDOF;
 
-PetscErrorCode init(int nx, int ny, int nz)
+int init(int nx, int ny, int nz)
 {
-	int dim = 3;
-	int ngp = 10;
-	int size[3] = { 10, 10, 10 };
-	int micro_type = 1;
-	double micro_params[2] = { 1.2, 2. };
-	double mat_types[2] = { 0, 1 };
-	double params[4] = { 1., 1., 1., .5 };
 
-//    micro3* micro = init3_(&dim, &ngp, size, &micro_type, micro_params, mat_types, params);
-    material_t *mat1 = micropp_C_material_create();
-    material_t *mat2 = micropp_C_material_create();
-    micropp_C_material_set(mat1, 1.0e7, 0.25, 1.0e4, 1.0e7, 0);
-    micropp_C_material_set(mat2, 1.0e7, 0.25, 1.0e4, 1.0e7, 1);
+    // This initializes <materials> declared in micropp_c_wrapper.h
+    micropp_C_material_create();
+    micropp_C_material_set(0, 1.0e7, 0.25, 1.0e4, 1.0e7, 0);
+    micropp_C_material_set(1, 1.0e7, 0.25, 1.0e4, 1.0e7, 1);
     print0("Material Values:\n");
     if(!rank) {
-    	micropp_C_material_print(mat1);
-    	micropp_C_material_print(mat2);
+    	micropp_C_material_print(0);
+    	micropp_C_material_print(1);
     }
+
+	int ngp = 10;
+	int size[3] = { 10, 10, 10 };
+	int type = 1;
+	double params[4] = { 1., 1., 1., .5 };
+    // This initializes <micro> declared in micropp_c_wrapper.h
+    // and uses the previous <materials> global array
+    micropp_C_create3(ngp, size, type, params);
 }
 
 
