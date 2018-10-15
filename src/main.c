@@ -20,33 +20,16 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-static char help[] = "FE code to solve macroscopic problems with PETSc.\n";
 
-#define NEWTON_TOL 1.0e-1
-#define NEWTON_ITS 4
+#include "macroc.h"
 
-#include <stdio.h>
-
-#include <petscksp.h>
-#include <petscdm.h>
-#include <petscdmda.h>
-
-#define print0(mess) { if(!rank) printf("%s", mess); }
-
-PetscErrorCode solve_elasticity_2d(PetscInt mx,PetscInt my);
-PetscErrorCode init(int nx, int ny, int nz);
-PetscErrorCode set_bc(int time_step);
-PetscErrorCode assembly_jac(void);
-PetscErrorCode assembly_res(void);
-PetscErrorCode solve_Ax(void);
 
 int main(int argc,char **args)
 {
-  	PetscErrorCode ierr;
-  	PetscInt       nx = 10, ny = 10, nz = 10;
+  	int ierr;
+  	int nx = 10, ny = 10, nz = 10;
   	int time_s, newton_it, tsteps = 1;
 	double norm;
-  	int rank, nproc;
   	char mess[64];
 
   	ierr = PetscInitialize(&argc,&args,(char*)0,help); if(ierr) return ierr;
@@ -55,10 +38,11 @@ int main(int argc,char **args)
   	ierr = PetscOptionsGetInt(NULL,NULL,"-zy",&nz,NULL);CHKERRQ(ierr);
   	ierr = PetscOptionsGetInt(NULL,NULL,"-ts",&tsteps,NULL);CHKERRQ(ierr);
 
-  	ierr = init(nx, ny, nz);
-
   	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   	MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+
+  	ierr = init(nx, ny, nz);
+
   	sprintf(mess, "Problem size %d\n", nproc);
   	print0(mess);
 
