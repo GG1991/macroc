@@ -67,9 +67,19 @@ int init()
   	ierr = PetscOptionsGetInt(NULL, NULL, "-ny", &ny, NULL); CHKERRQ(ierr);
   	ierr = PetscOptionsGetInt(NULL, NULL, "-nz", &nz, NULL); CHKERRQ(ierr);
   	ierr = PetscOptionsGetInt(NULL, NULL, "-ts", &tsteps, NULL); CHKERRQ(ierr);
+  	ierr = PetscOptionsGetInt(NULL, NULL, "-npx", &nproc_x, NULL); CHKERRQ(ierr);
     nex = nx - 1; ney = ny - 1; nez = nz - 1;
     dx = lx / nex; dy = ly / ney; dz = lz / nez;
     nelem = nex * ney * nez;
+
+	nproc_y = nproc_x;
+	nproc_z = nproc_x;
+    if(nproc_x * nproc_y * nproc_z != nproc) {
+  		sprintf(mess, "Number Of Process: %d is not a cubic of -npx %d\n", nproc, nproc_x);
+  		print0(mess);
+  		exit(1);
+  	}
+
 
   	sprintf(mess, "Number Of Elements: %d\n", nelem);
   	print0(mess);
@@ -77,9 +87,37 @@ int init()
 	DMBoundaryType bx = DM_BOUNDARY_NONE, by = DM_BOUNDARY_NONE, bz = DM_BOUNDARY_NONE;
     DMDAStencilType stype = DMDA_STENCIL_STAR;
 
+//    ierr = DMDACreate3d(PETSC_COMM_WORLD, bx, by, bz, stype, nx, ny, nz,
+//    					PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,
+//    					3, 1, NULL, NULL, NULL, &DA);
     ierr = DMDACreate3d(PETSC_COMM_WORLD, bx, by, bz, stype, nx, ny, nz,
-    					PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,
+    					nproc_x, nproc_y, nproc_z,
     					3, 1, NULL, NULL, NULL, &DA);
+
+//    ierr = DMDASetUniformCoordinates(DA, 0., lx, 0., ly, 0., lz);
+
+//    int start_x, start_y, start_z; 
+//    DMDAGetCorners(DA, &start_x, &start_y, &start_z,
+//    			   &nx_local, &ny_local, &nz_local);
+//  	sprintf(mess, "start_x:%d\tstart_y:%d\tstart_z:%d\n", start_x, start_y, start_z);
+//  	print0(mess);
+//  	sprintf(mess, "nx_local:%d\tny_local:%d\tnz_local:%d\n", nx_local, ny_local, nz_local);
+//  	print0(mess);
+
+	ierr = DMDAGetElementsSizes(DA, &nex_local, &ney_local, &nez_local); CHKERRQ(ierr);
+	sprintf(mess, "nex_local:%d\tney_local:%d\tnez_local:%d\n", nex_local, ney_local, nez_local);
+	print0(mess);
+//  	DMCreateGlobalVector(DA, &u);
+//  	DMCreateGlobalVector(DA, &du);
+//  	DMCreateGlobalVector(DA, &b);
+
+	int cpu_x, cpu_y, cpu_z;
+	int DIM, M, N, P, DOF;
+  	DMDAGetInfo(DA, &DIM, &M, &N, &P, &cpu_x, &cpu_y, &cpu_z, &DOF, 0, 0, 0, 0, 0);
+  	sprintf(mess, "cpu_x:%d\tcpu_y:%d\tcpu_z:%d\n", cpu_x, cpu_y, cpu_z);
+  	print0(mess);
+  	sprintf(mess, "M:%d\tN:%d\tP:%d\tDIM:%d\tDOF:%d\n", DIM, M, N, P, DOF);
+  	print0(mess);
 
     nex_local = nx_local - 1; ney_local = ny_local - 1; nez_local = nz_local - 1;
 	nelem_local = nex_local * ney_local * nez_local;
@@ -101,7 +139,7 @@ int init()
 	int size[3] = { 10, 10, 10 };
 	int type = 1;
 	double params[4] = { 1., 1., 1., .5 };
-    micropp_C_create3(ngp_local, size, type, params);
+//    micropp_C_create3(ngp_local, size, type, params);
 
     return ierr;
 }

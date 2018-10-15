@@ -41,25 +41,25 @@ int main(int argc,char **args)
   	sprintf(mess, "Problem size %d\n", nproc);
   	print0(mess);
 
-  	for(time_s = 0; time_s < tsteps; ++time_s) {
-
-		ierr = set_bc(time_s);
-
-        newton_it = 0;
-  		while(newton_it < NEWTON_ITS ) {
-
-  			ierr = set_strains();
-
-	  		ierr = assembly_res();
-        	/* norm = |b| */
-
-	  		ierr = assembly_jac();
-	  		ierr = solve_Ax();
-        	/* u = u + du */
-
-        	newton_it ++;
-        }
-  	}
+//  	for(time_s = 0; time_s < tsteps; ++time_s) {
+//
+//		ierr = set_bc(time_s);
+//
+//        newton_it = 0;
+//  		while(newton_it < NEWTON_ITS ) {
+//
+//  			ierr = set_strains();
+//
+//	  		ierr = assembly_res();
+//        	/* norm = |b| */
+//
+//	  		ierr = assembly_jac();
+//	  		ierr = solve_Ax();
+//        	/* u = u + du */
+//
+//        	newton_it ++;
+//        }
+//  	}
 
 //    ierr = solve_elasticity_2d(nx,ny);CHKERRQ(ierr);
   	ierr = PetscFinalize();

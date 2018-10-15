@@ -37,7 +37,7 @@
 #define print0(mess) { if(!rank) printf("%s", mess); }
 
 static char help[] = "FE code to solve macroscopic problems with PETSc.\n";
-int rank, nproc;
+int rank, nproc, nproc_x, nproc_y, nproc_z;
 
 int nx, ny, nz, nx_local, ny_local, nz_local;
 int nex, ney, nez, nex_local, ney_local, nez_local;
