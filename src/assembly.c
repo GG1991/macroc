@@ -57,89 +57,51 @@ typedef struct {
 
 int init()
 {
-	int ierr;
-  	char mess[64];
+    int ierr;
+    char mess[64];
 
-	tsteps = 1;
-  	nx = 10; ny = 10; nz = 10;
-  	lx = 1.; ly = 1.; lz = 1.;
-  	ierr = PetscOptionsGetInt(NULL, NULL, "-nx", &nx, NULL); CHKERRQ(ierr);
-  	ierr = PetscOptionsGetInt(NULL, NULL, "-ny", &ny, NULL); CHKERRQ(ierr);
-  	ierr = PetscOptionsGetInt(NULL, NULL, "-nz", &nz, NULL); CHKERRQ(ierr);
-  	ierr = PetscOptionsGetInt(NULL, NULL, "-ts", &tsteps, NULL); CHKERRQ(ierr);
-  	ierr = PetscOptionsGetInt(NULL, NULL, "-npx", &nproc_x, NULL); CHKERRQ(ierr);
-    nex = nx - 1; ney = ny - 1; nez = nz - 1;
-    dx = lx / nex; dy = ly / ney; dz = lz / nez;
-    nelem = nex * ney * nez;
+    tsteps = 1;
+    nx = 10; ny = 10; nz = 10;
 
-	nproc_y = nproc_x;
-	nproc_z = nproc_x;
-    if(nproc_x * nproc_y * nproc_z != nproc) {
-  		sprintf(mess, "Number Of Process: %d is not a cubic of -npx %d\n", nproc, nproc_x);
-  		print0(mess);
-  		exit(1);
-  	}
+    /*
+       -da_grid_x <nx> - number of grid points in x direction, if M < 0
+       -da_grid_y <ny> - number of grid points in y direction, if N < 0
+       -da_grid_z <nz> - number of grid points in z direction, if N < 0
+       -da_processors_x <MX> number of processors in x directio
+       -da_processors_y <MY> number of processors in y direction
+       -da_processors_z <MZ> number of processors in z direction
+       */
 
-
-  	sprintf(mess, "Number Of Elements: %d\n", nelem);
-  	print0(mess);
-
-	DMBoundaryType bx = DM_BOUNDARY_NONE, by = DM_BOUNDARY_NONE, bz = DM_BOUNDARY_NONE;
+    DMBoundaryType bx = DM_BOUNDARY_NONE, by = DM_BOUNDARY_NONE, bz = DM_BOUNDARY_NONE;
     DMDAStencilType stype = DMDA_STENCIL_STAR;
-
-//    ierr = DMDACreate3d(PETSC_COMM_WORLD, bx, by, bz, stype, nx, ny, nz,
-//    					PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,
-//    					3, 1, NULL, NULL, NULL, &DA);
     ierr = DMDACreate3d(PETSC_COMM_WORLD, bx, by, bz, stype, nx, ny, nz,
-    					nproc_x, nproc_y, nproc_z,
-    					3, 1, NULL, NULL, NULL, &DA);
+                        PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,
+                        3, 1, NULL, NULL, NULL, &DA);
+    ierr = DMSetFromOptions(DA); CHKERRQ(ierr);
+    ierr = DMSetUp(DA); CHKERRQ(ierr);
+    ierr = DMCreateGlobalVector(DA, &u);CHKERRQ(ierr);
 
-//    ierr = DMDASetUniformCoordinates(DA, 0., lx, 0., ly, 0., lz);
+    int start, end;
+    ierr = VecGetOwnershipRange(u,&start,&end);CHKERRQ(ierr);
+    sprintf(mess, "rank %d - start: %d - end: %d\n", rank, start, end); print0(mess);
 
-//    int start_x, start_y, start_z; 
-//    DMDAGetCorners(DA, &start_x, &start_y, &start_z,
-//    			   &nx_local, &ny_local, &nz_local);
-//  	sprintf(mess, "start_x:%d\tstart_y:%d\tstart_z:%d\n", start_x, start_y, start_z);
-//  	print0(mess);
-//  	sprintf(mess, "nx_local:%d\tny_local:%d\tnz_local:%d\n", nx_local, ny_local, nz_local);
-//  	print0(mess);
-
-	ierr = DMDAGetElementsSizes(DA, &nex_local, &ney_local, &nez_local); CHKERRQ(ierr);
-	sprintf(mess, "nex_local:%d\tney_local:%d\tnez_local:%d\n", nex_local, ney_local, nez_local);
-	print0(mess);
-//  	DMCreateGlobalVector(DA, &u);
-//  	DMCreateGlobalVector(DA, &du);
-//  	DMCreateGlobalVector(DA, &b);
-
-	int cpu_x, cpu_y, cpu_z;
-	int DIM, M, N, P, DOF;
-  	DMDAGetInfo(DA, &DIM, &M, &N, &P, &cpu_x, &cpu_y, &cpu_z, &DOF, 0, 0, 0, 0, 0);
-  	sprintf(mess, "cpu_x:%d\tcpu_y:%d\tcpu_z:%d\n", cpu_x, cpu_y, cpu_z);
-  	print0(mess);
-  	sprintf(mess, "M:%d\tN:%d\tP:%d\tDIM:%d\tDOF:%d\n", DIM, M, N, P, DOF);
-  	print0(mess);
-
-    nex_local = nx_local - 1; ney_local = ny_local - 1; nez_local = nz_local - 1;
-	nelem_local = nex_local * ney_local * nez_local;
-    ngp_local = nelem_local * NGP;
-    
     // This initializes <materials> declared in micropp_c_wrapper.h
     micropp_C_material_create();
     micropp_C_material_set(0, 1.0e7, 0.25, 1.0e4, 1.0e7, 0);
     micropp_C_material_set(1, 1.0e7, 0.25, 1.0e4, 1.0e7, 1);
     print0("Material Values:\n");
     if(!rank) {
-    	micropp_C_material_print(0);
-    	micropp_C_material_print(1);
+        micropp_C_material_print(0);
+        micropp_C_material_print(1);
     }
 
     // This initializes <micro> declared in micropp_c_wrapper.h
     // and uses the previous <materials> global array
     ngp_local = 1; // TODO
-	int size[3] = { 10, 10, 10 };
-	int type = 1;
-	double params[4] = { 1., 1., 1., .5 };
-//    micropp_C_create3(ngp_local, size, type, params);
+    int size[3] = { 10, 10, 10 };
+    int type = 1;
+    double params[4] = { 1., 1., 1., .5 };
+    //micropp_C_create3(ngp_local, size, type, params);
 
     return ierr;
 }
