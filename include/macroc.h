@@ -3,8 +3,6 @@
  *  to solve macrostructural problems for composite materials.
  *
  *  Copyright (C) - 2018 - Guido Giuntoli <gagiuntoli@gmail.com>
- *                         Based on the PETSc example develop by:
- *                         Dave May
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -42,6 +40,8 @@
 #define print0(mess) { if(!rank) printf("%s", mess); }
 #define gpi(ex, ey, ez, gp) ( (ez * nexl * neyl + ey * nexl + ex) * NGP + gp)
 
+static char help[] = "FE code to solve macroscopic problems with PETSc.\n";
+
 static double xg[8][3] = {
     { -CONSTXG, -CONSTXG, -CONSTXG },
     { +CONSTXG, -CONSTXG, -CONSTXG },
@@ -52,7 +52,6 @@ static double xg[8][3] = {
     { +CONSTXG, +CONSTXG, +CONSTXG },
     { -CONSTXG, +CONSTXG, +CONSTXG } };
 
-static char help[] = "FE code to solve macroscopic problems with PETSc.\n";
 int rank, nproc, nproc_x, nproc_y, nproc_z;
 
 int nx, ny, nz, nxl, nyl, nzl;
@@ -73,7 +72,7 @@ int finish();
 int set_bc(int time_step);
 int set_strains();
 int assembly_jac(Mat A);
-int assembly_res();
+int assembly_res(Vec b);
 int solve_Ax();
 
 void get_elem_stencil(MatStencil s_u[NPE * DIM], int ei, int ej, int ek);

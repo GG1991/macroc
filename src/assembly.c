@@ -3,8 +3,6 @@
  *  to solve macrostructural problems for composite materials.
  *
  *  Copyright (C) - 2018 - Guido Giuntoli <gagiuntoli@gmail.com>
- *                         Based on the PETSc example develop by:
- *                         Dave May
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -62,28 +60,36 @@ void calc_B(int gp, double B[6][NPE * DIM])
     double dx = 1., dy = 1., dz = 1.;
 
     const double dsh[NPE][DIM] = {
-        { -(1 - xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
+        { 
+            -(1 - xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
             -(1 - xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
             -(1 - xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
-        { +(1 - xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
+        { 
+            +(1 - xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
             -(1 + xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
             -(1 + xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
-        { +(1 + xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
+        { 
+            +(1 + xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
             +(1 + xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
             -(1 + xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
-        { -(1 + xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
+        { 
+            -(1 + xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
             +(1 - xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
             -(1 - xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
-        { -(1 - xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
+        { 
+            -(1 - xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
             -(1 - xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
             +(1 - xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
-        { +(1 - xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
+        { 
+            +(1 - xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
             -(1 + xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
             +(1 + xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
-        { +(1 + xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
+        { 
+            +(1 + xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
             +(1 + xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
             +(1 + xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
-        { -(1 + xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
+        { 
+            -(1 + xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
             +(1 - xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
             +(1 - xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz } };
 
@@ -160,8 +166,25 @@ int assembly_jac(Mat A)
     return ierr;
 }
 
+#define LOCIX(ex, ey, ez) ((ez) * (nexl + 1)* (neyl + 1) + (ey) * (nexl + 1) + (ex)) 
+void get_elem_ix_local(int ex, int ey, int ez, PetscInt ixloc[NPE * DIM])
+{
+    int d;
 
-int assembly_res(void)
+    for(d = 0; d < DIM; ++d){
+        ixloc[0 * DIM + d] = LOCIX(ex    , ey    , ez    ) * DIM + d;
+        ixloc[1 * DIM + d] = LOCIX(ex + 1, ey    , ez    ) * DIM + d;
+        ixloc[2 * DIM + d] = LOCIX(ex + 1, ey + 1, ez    ) * DIM + d;
+        ixloc[3 * DIM + d] = LOCIX(ex    , ey + 1, ez    ) * DIM + d;
+        ixloc[4 * DIM + d] = LOCIX(ex    , ey    , ez + 1) * DIM + d;
+        ixloc[5 * DIM + d] = LOCIX(ex + 1, ey    , ez + 1) * DIM + d;
+        ixloc[6 * DIM + d] = LOCIX(ex + 1, ey + 1, ez + 1) * DIM + d;
+        ixloc[7 * DIM + d] = LOCIX(ex    , ey + 1, ez + 1) * DIM + d;
+    }
+
+}
+
+int assembly_res(Vec b)
 {
     int ierr = 0;
     int ex, ey, ez, gp;
@@ -170,6 +193,7 @@ int assembly_res(void)
     double stress[6];
     double be[NPE * DIM * NPE * DIM];
     double B[6][NPE * DIM];
+    PetscInt ix_loc[NPE * DIM];
 
     MatStencil u_eqn[NPE * DIM];
 
@@ -192,10 +216,13 @@ int assembly_res(void)
 
                 }
 
-                get_elem_stencil(u_eqn, sex + ex, sey + ey, sez + ez);
+                get_elem_ix_local(ex, ey, ez, ix_loc);
+                VecSetValuesLocal(b, NPE * DIM, ix_loc, be, ADD_VALUES);
             }
         }
     }
+    VecAssemblyBegin(b);
+    VecAssemblyEnd(b);
 
     return ierr;
 }

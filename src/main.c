@@ -3,8 +3,6 @@
  *  to solve macrostructural problems for composite materials.
  *
  *  Copyright (C) - 2018 - Guido Giuntoli <gagiuntoli@gmail.com>
- *                         Based on the PETSc example develop by:
- *                         Dave May
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -51,7 +49,7 @@ int main(int argc,char **args)
             //ierr = set_strains();
             //micropp_C_homogenize();
 
-            //ierr = assembly_res();
+            ierr = assembly_res(b);
             /* norm = |b| */
 
             ierr = assembly_jac(A);

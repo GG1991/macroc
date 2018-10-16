@@ -3,8 +3,6 @@
  *  to solve macrostructural problems for composite materials.
  *
  *  Copyright (C) - 2018 - Guido Giuntoli <gagiuntoli@gmail.com>
- *                         Based on the PETSc example develop by:
- *                         Dave May
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -43,15 +41,16 @@ int init()
     ierr = DMSetFromOptions(DA); CHKERRQ(ierr);
     ierr = DMSetUp(DA); CHKERRQ(ierr);
     ierr = DMCreateMatrix(DA, &A); CHKERRQ(ierr);
-    ierr = MatCreateVecs(A, &b, &u); CHKERRQ(ierr);
-    ierr = VecDuplicate(u, &du); CHKERRQ(ierr);
+    ierr = DMCreateGlobalVector(DA, &u); CHKERRQ(ierr);
+    ierr = DMCreateGlobalVector(DA, &b); CHKERRQ(ierr);
+    ierr = DMCreateGlobalVector(DA, &du); CHKERRQ(ierr);
 
     int istart, iend;
-    MatGetOwnershipRange(A, &istart, &iend);
+    //MatGetOwnershipRange(A, &istart, &iend);
     //printf("rank %d - A: istart: %d - iend: %d\n", rank, istart, iend);
 
     int sx, sy, sz;
-    ierr = DMDAGetGhostCorners(DA, &sx, &sy, &sz, &nxl, &nyl, &nzl); CHKERRQ(ierr);
+    //ierr = DMDAGetGhostCorners(DA, &sx, &sy, &sz, &nxl, &nyl, &nzl); CHKERRQ(ierr);
     //printf("rank %d - sx: %d - sy: %d - sz: %d - nxl: %d - nyl: %d - nzl: %d\n", rank, sx, sy, sz, nxl, nyl, nzl);
 
     ierr = DMDAGetElementsSizes(DA, &nexl, &neyl, &nezl); CHKERRQ(ierr);
@@ -65,7 +64,7 @@ int init()
     dz = 1.;
     wg = dx * dy * dz / NPE;
 
-    // This initializes <materials> declared in micropp_c_wrapper.h
+    // Initializes <materials> declared in <micropp_c_wrapper.h>
     micropp_C_material_create();
     micropp_C_material_set(0, 1.0e7, 0.25, 1.0e4, 1.0e7, 0);
     micropp_C_material_set(1, 1.0e7, 0.25, 1.0e4, 1.0e7, 1);
@@ -75,9 +74,7 @@ int init()
         micropp_C_material_print(1);
     }
 
-    // This initializes <micro> declared in micropp_c_wrapper.h
-    // and uses the previous <materials> global array
-   
+    // Initializes <micro> declared in <micropp_c_wrapper.h>
     int ngpl = nexl * neyl * nezl * NGP; 
     int size[3] = { 5, 5, 5 };
     int type = 1;
