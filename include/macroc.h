@@ -31,6 +31,7 @@
 
 #define NGP        8
 #define NPE        8
+#define NVOI       6
 #define DIM        3
 #define NEWTON_TOL 1.0e-1
 #define NEWTON_ITS 4
@@ -52,12 +53,13 @@ static char help[] = "FE code to solve macroscopic problems with PETSc.\n";
 int rank, nproc, nproc_x, nproc_y, nproc_z;
 
 int nx, ny, nz, nxl, nyl, nzl;
-int nex, ney, nez, nex_local, ney_local, nez_local;
+int nex, ney, nez, nexl, neyl, nezl;
 int nelem, nelem_local;
-int ngp_local;
+int ngpl;
 int tsteps;
 
 double lx, ly, lz, dx, dy, dz;
+double wg;
 
 DM DA;
 Mat A;
