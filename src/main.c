@@ -46,9 +46,10 @@ int main(int argc,char **args)
         //ierr = set_bc(time_s);
 
         newton_it = 0;
-        while(newton_it < NEWTON_ITS ) {
+        while(newton_it < NEWTON_ITS) {
 
             //ierr = set_strains();
+            //micropp_C_homogenize();
 
             //ierr = assembly_res();
             /* norm = |b| */

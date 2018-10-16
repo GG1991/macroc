@@ -20,79 +20,9 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+
 #include "macroc.h"
-#include "micropp_c_wrapper.h"
-#include "petscksp.h"
-#include "petscdm.h"
-#include "petscdmda.h"
 
-int init()
-{
-    int ierr;
-    char mess[64];
-
-    tsteps = 1;
-    nx = 10; ny = 10; nz = 10;
-
-    DMBoundaryType bx = DM_BOUNDARY_NONE, by = DM_BOUNDARY_NONE, bz = DM_BOUNDARY_NONE;
-    ierr = DMDACreate3d(PETSC_COMM_WORLD, bx, by, bz, DMDA_STENCIL_BOX, 10, 10, 10,
-                        PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,
-                        3, 1, NULL, NULL, NULL, &DA);
-    ierr = DMSetMatType(DA, MATAIJ); CHKERRQ(ierr);
-    ierr = DMSetFromOptions(DA); CHKERRQ(ierr);
-    ierr = DMSetUp(DA); CHKERRQ(ierr);
-    ierr = DMCreateMatrix(DA, &A); CHKERRQ(ierr);
-    ierr = DMCreateGlobalVector(DA, &u); CHKERRQ(ierr);
-
-    int istart, iend;
-    MatGetOwnershipRange(A, &istart, &iend);
-    //printf("rank %d - A: istart: %d - iend: %d\n", rank, istart, iend);
-
-    int sx, sy, sz;
-    ierr = DMDAGetGhostCorners(DA, &sx, &sy, &sz, &nxl, &nyl, &nzl); CHKERRQ(ierr);
-    //printf("rank %d - sx: %d - sy: %d - sz: %d - nxl: %d - nyl: %d - nzl: %d\n", rank, sx, sy, sz, nxl, nyl, nzl);
-
-    ierr = DMDAGetElementsSizes(DA, &nexl, &neyl, &nezl); CHKERRQ(ierr);
-    printf("rank %d - nexl: %d - neyl: %d - nezl: %d\n", rank, nexl, neyl, nezl);
-
-    ierr = VecGetOwnershipRange(u, &istart, &iend); CHKERRQ(ierr);
-    //printf("rank %d - start: %d - end: %d\n", rank, istart, iend);
-
-    dx = 1.;
-    dy = 1.;
-    dz = 1.;
-    wg = dx * dy * dz / NPE;
-
-    // This initializes <materials> declared in micropp_c_wrapper.h
-    micropp_C_material_create();
-    micropp_C_material_set(0, 1.0e7, 0.25, 1.0e4, 1.0e7, 0);
-    micropp_C_material_set(1, 1.0e7, 0.25, 1.0e4, 1.0e7, 1);
-    print0("Material Values:\n");
-    if(!rank) {
-        micropp_C_material_print(0);
-        micropp_C_material_print(1);
-    }
-
-    // This initializes <micro> declared in micropp_c_wrapper.h
-    // and uses the previous <materials> global array
-   
-    int ngpl = nexl * neyl * nezl * NGP; 
-    int size[3] = { 5, 5, 5 };
-    int type = 1;
-    double params[4] = { 1., 1., 1., .5 };
-    micropp_C_create3(ngpl, size, type, params);
-
-    return ierr;
-}
-
-
-int finish()
-{
-    int ierr;
-    ierr = MatDestroy(&A); CHKERRQ(ierr);
-    ierr = PetscFinalize();
-    return ierr;
-}
 
 int set_bc(int time_step)
 {
@@ -103,6 +33,7 @@ int set_strains()
 {
     int ex, ey, ez, gp;
     int ierr = 0;
+    int gpi_;
     double strain[6];
 
     for(ex = 0; ex < nexl; ++ex) {
@@ -111,7 +42,9 @@ int set_strains()
 
                 for(gp = 0; gp < NGP; ++gp) {
 
-                    micropp_C_set_strain3(gp, strain);
+                    strain[0] = 0.0;
+//                    gpi_ = gpi(ex, ey, ez, gp);
+//                    micropp_C_set_strain3(gpi_, strain);
 
                 }
 

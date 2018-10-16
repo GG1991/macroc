@@ -25,6 +25,8 @@
 
 #include <stdio.h>
 
+#include "micropp_c_wrapper.h"
+
 #include "petscksp.h"
 #include "petscdm.h"
 #include "petscdmda.h"
@@ -34,10 +36,11 @@
 #define NVOI       6
 #define DIM        3
 #define NEWTON_TOL 1.0e-1
-#define NEWTON_ITS 4
+#define NEWTON_ITS 1
 #define CONSTXG    0.577350269189626
 
 #define print0(mess) { if(!rank) printf("%s", mess); }
+#define gpi(ex, ey, ez, gp) ( (ez * nexl * neyl + ey * nexl + ex) * NGP + gp)
 
 static double xg[8][3] = {
     { -CONSTXG, -CONSTXG, -CONSTXG },
