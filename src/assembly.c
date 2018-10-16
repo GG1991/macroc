@@ -35,13 +35,13 @@ int init()
     nx = 10; ny = 10; nz = 10;
 
     DMBoundaryType bx = DM_BOUNDARY_NONE, by = DM_BOUNDARY_NONE, bz = DM_BOUNDARY_NONE;
-    ierr = DMDACreate3d(PETSC_COMM_WORLD, bx, by, bz, DMDA_STENCIL_BOX, nx, ny, nz,
+    ierr = DMDACreate3d(PETSC_COMM_WORLD, bx, by, bz, DMDA_STENCIL_BOX, 10, 10, 10,
                         PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,
                         3, 1, NULL, NULL, NULL, &DA);
     ierr = DMSetMatType(DA, MATAIJ); CHKERRQ(ierr);
     ierr = DMSetFromOptions(DA); CHKERRQ(ierr);
     ierr = DMSetUp(DA); CHKERRQ(ierr);
-    ierr = DMCreateMatrix(DA,&A); CHKERRQ(ierr);
+    ierr = DMCreateMatrix(DA, &A); CHKERRQ(ierr);
     ierr = DMCreateGlobalVector(DA, &u); CHKERRQ(ierr);
 
     int istart, iend;
@@ -49,13 +49,13 @@ int init()
     //printf("rank %d - A: istart: %d - iend: %d\n", rank, istart, iend);
 
     int sx, sy, sz;
-    ierr = DMDAGetGhostCorners(DA,&sx,&sy,&sz, &nxl, &nyl, &nzl);CHKERRQ(ierr);
+    ierr = DMDAGetGhostCorners(DA, &sx, &sy, &sz, &nxl, &nyl, &nzl); CHKERRQ(ierr);
     //printf("rank %d - sx: %d - sy: %d - sz: %d - nxl: %d - nyl: %d - nzl: %d\n", rank, sx, sy, sz, nxl, nyl, nzl);
 
-    ierr = DMDAGetElementsSizes(DA, &nexl, &neyl, &nezl);
+    ierr = DMDAGetElementsSizes(DA, &nexl, &neyl, &nezl); CHKERRQ(ierr);
     printf("rank %d - nexl: %d - neyl: %d - nezl: %d\n", rank, nexl, neyl, nezl);
 
-    ierr = VecGetOwnershipRange(u, &istart, &iend);CHKERRQ(ierr);
+    ierr = VecGetOwnershipRange(u, &istart, &iend); CHKERRQ(ierr);
     //printf("rank %d - start: %d - end: %d\n", rank, istart, iend);
 
     dx = 1.;
@@ -85,6 +85,14 @@ int init()
     return ierr;
 }
 
+
+int finish()
+{
+    int ierr;
+    ierr = MatDestroy(&A); CHKERRQ(ierr);
+    ierr = PetscFinalize();
+    return ierr;
+}
 
 int set_bc(int time_step)
 {
@@ -191,11 +199,14 @@ int assembly_jac(Mat A)
                     calc_B(gp, B);
                     micropp_C_get_ctan3(gp, ctan);
 
-                    for (i = 0; i < NPE; i++) {
-                        for (j = 0; j < NPE; j++) {
-                            for (k = 0; k < NVOI; k++) {
-                                for (l = 0; l < NVOI; l++) {
-                                    Ae[NPE * i + j] += B[k][i] * ctan[k * NVOI + l] * B[l][j] * wg;
+                    for (i = 0; i < NPE; ++i) {
+                        for (j = 0; j < NPE; ++j) {
+                            for (k = 0; k < NVOI; ++k) {
+                                for (l = 0; l < NVOI; ++l) {
+                                    Ae[NPE * i + j] += \
+                                                       B[k][i] \
+                                                       * ctan[k * NVOI + l] \
+                                                       * B[l][j] * wg;
                                 }
                             }
                         }
@@ -204,12 +215,14 @@ int assembly_jac(Mat A)
                 }
 
                 get_elem_stencil(u_eqn, sex + ex, sey + ey, sez + ez);
-                //ierr = MatSetValuesStencil(A, NPE * DIM, u_eqn, NPE * DIM, u_eqn, Ae, ADD_VALUES); CHKERRQ(ierr);
+                ierr = MatSetValuesStencil(A, NPE * DIM, u_eqn, NPE * DIM,
+                                           u_eqn, Ae, ADD_VALUES);
+                CHKERRQ(ierr);
             }
         }
     }
-    //    ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
-    //    ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+    ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+    ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
 
     return ierr;
 }
@@ -238,8 +251,8 @@ int assembly_res(void)
                     calc_B(gp, B);
                     micropp_C_get_stress3(gp, stress);
 
-                    for (i = 0; i < NPE * DIM; i++) {
-                        for (j = 0; j < NVOI; j++) {
+                    for (i = 0; i < NPE * DIM; ++i) {
+                        for (j = 0; j < NVOI; ++j) {
                             be[i] += B[j][i] * stress[j] * wg;
                         }
                     }
@@ -250,7 +263,6 @@ int assembly_res(void)
             }
         }
     }
-
 
     return ierr;
 }

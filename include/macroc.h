@@ -65,11 +65,11 @@ DM DA;
 Mat A;
 Vec u, du, b;
 
-PetscErrorCode solve_elasticity_2d(PetscInt mx,PetscInt my);
 int init();
+int finish();
 int set_bc(int time_step);
 int set_strains();
-int assembly_jac();
+int assembly_jac(Mat A);
 int assembly_res();
 int solve_Ax();
 

@@ -53,7 +53,7 @@ int main(int argc,char **args)
             //ierr = assembly_res();
             /* norm = |b| */
 
-            ierr = assembly_jac();
+            ierr = assembly_jac(A);
             //ierr = solve_Ax();
             /* u = u + du */
 
@@ -61,6 +61,6 @@ int main(int argc,char **args)
         }
     }
 
-    ierr = PetscFinalize();
+    ierr = finish();
     return ierr;
 }
