@@ -36,6 +36,10 @@ else()
 	message(SEND_ERROR "MicroPP library not found. Probably you should set MICROPP_DIR env variable.")
 endif()
 
+
+SET(C_COMPILE_FLAGS "-Wformat")
+SET(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} ${C_COMPILE_FLAGS}")
+
 # Include Directories (for all targets)
 include_directories(include ${CMAKE_BINARY_DIR} ${MICROPP_INC} ${PETSC_INC} ${MPI_INCLUDE_PATH})
 

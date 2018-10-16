@@ -57,7 +57,7 @@ int init()
     ierr = DMDAGetElementsSizes(DA, &nexl, &neyl, &nezl); CHKERRQ(ierr);
     printf("rank %d - nexl: %d - neyl: %d - nezl: %d\n", rank, nexl, neyl, nezl);
 
-    ierr = VecGetOwnershipRange(u, &istart, &iend); CHKERRQ(ierr);
+    //ierr = VecGetOwnershipRange(u, &istart, &iend); CHKERRQ(ierr);
     //printf("rank %d - start: %d - end: %d\n", rank, istart, iend);
 
     dx = 1.;
