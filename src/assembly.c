@@ -34,12 +34,8 @@ int init()
     tsteps = 1;
     nx = 10; ny = 10; nz = 10;
 
-    /*
-       */
-
     DMBoundaryType bx = DM_BOUNDARY_NONE, by = DM_BOUNDARY_NONE, bz = DM_BOUNDARY_NONE;
-    DMDAStencilType stype = DMDA_STENCIL_STAR;
-    ierr = DMDACreate3d(PETSC_COMM_WORLD, bx, by, bz, stype, nx, ny, nz,
+    ierr = DMDACreate3d(PETSC_COMM_WORLD, bx, by, bz, DMDA_STENCIL_BOX, nx, ny, nz,
                         PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,
                         3, 1, NULL, NULL, NULL, &DA);
     ierr = DMSetMatType(DA, MATAIJ); CHKERRQ(ierr);
@@ -47,6 +43,7 @@ int init()
     ierr = DMSetUp(DA); CHKERRQ(ierr);
     ierr = DMCreateMatrix(DA,&A); CHKERRQ(ierr);
     ierr = DMCreateGlobalVector(DA, &u); CHKERRQ(ierr);
+
     int istart, iend;
     MatGetOwnershipRange(A, &istart, &iend);
     //printf("rank %d - A: istart: %d - iend: %d\n", rank, istart, iend);
@@ -61,13 +58,10 @@ int init()
     ierr = VecGetOwnershipRange(u, &istart, &iend);CHKERRQ(ierr);
     //printf("rank %d - start: %d - end: %d\n", rank, istart, iend);
 
-    /* Generate a matrix with the correct non-zero pattern of type AIJ.
-     * This will work in parallel and serial */
-
     dx = 1.;
     dy = 1.;
     dz = 1.;
-	wg = dx * dy * dz / NPE;
+    wg = dx * dy * dz / NPE;
 
     // This initializes <materials> declared in micropp_c_wrapper.h
     micropp_C_material_create();
@@ -99,25 +93,25 @@ int set_bc(int time_step)
 
 int set_strains()
 {
-	int ex, ey, ez, gp;
-	int ierr = 0;
-	double strain[6];
+    int ex, ey, ez, gp;
+    int ierr = 0;
+    double strain[6];
 
-	for(ex = 0; ex < nexl; ++ex) {
-		for(ey = 0; ey < neyl; ++ey) {
-			for(ez = 0; ex < nezl; ++ez) {
+    for(ex = 0; ex < nexl; ++ex) {
+        for(ey = 0; ey < neyl; ++ey) {
+            for(ez = 0; ex < nezl; ++ez) {
 
-				for(gp = 0; gp < NGP; ++gp) {
+                for(gp = 0; gp < NGP; ++gp) {
 
-					micropp_C_set_strain3(gp, strain);
+                    micropp_C_set_strain3(gp, strain);
 
-				}
+                }
 
-			}
-		}
-	}
+            }
+        }
+    }
 
-	return ierr;
+    return ierr;
 }
 
 
@@ -126,52 +120,52 @@ void calc_B(int gp, double B[6][NPE * DIM])
     int i;
     double dx = 1., dy = 1., dz = 1.;
 
-	const double dsh[NPE][DIM] = {
-		{ -(1 - xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
-		  -(1 - xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
-		  -(1 - xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
-		{ +(1 - xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
-		  -(1 + xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
-		  -(1 + xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
-		{ +(1 + xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
-		  +(1 + xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
-		  -(1 + xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
-		{ -(1 + xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
-		  +(1 - xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
-		  -(1 - xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
-		{ -(1 - xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
-		  -(1 - xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
-		  +(1 - xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
-		{ +(1 - xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
-		  -(1 + xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
-		  +(1 + xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
-		{ +(1 + xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
-		  +(1 + xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
-		  +(1 + xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
-		{ -(1 + xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
-		  +(1 - xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
-		  +(1 - xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz } };
+    const double dsh[NPE][DIM] = {
+        { -(1 - xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
+            -(1 - xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
+            -(1 - xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
+        { +(1 - xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
+            -(1 + xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
+            -(1 + xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
+        { +(1 + xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
+            +(1 + xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
+            -(1 + xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
+        { -(1 + xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
+            +(1 - xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
+            -(1 - xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
+        { -(1 - xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
+            -(1 - xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
+            +(1 - xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
+        { +(1 - xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
+            -(1 + xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
+            +(1 + xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
+        { +(1 + xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
+            +(1 + xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
+            +(1 + xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
+        { -(1 + xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
+            +(1 - xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
+            +(1 - xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz } };
 
-	for (i = 0; i < NPE; ++i) {
-		B[0][i * DIM    ] = dsh[i][0];
-		B[0][i * DIM + 1] = 0;
-		B[0][i * DIM + 2] = 0;
-		B[1][i * DIM    ] = 0;
-		B[1][i * DIM + 1] = dsh[i][1];
-		B[1][i * DIM + 2] = 0;
-		B[2][i * DIM    ] = 0;
-		B[2][i * DIM + 1] = 0;
-		B[2][i * DIM + 2] = dsh[i][2];
-		B[3][i * DIM    ] = dsh[i][1];
-		B[3][i * DIM + 1] = dsh[i][0];
-		B[3][i * DIM + 2] = 0;
-		B[4][i * DIM    ] = dsh[i][2];
-		B[4][i * DIM + 1] = 0;
-		B[4][i * DIM + 2] = dsh[i][0];
-		B[5][i * DIM    ] = 0;
-		B[5][i * DIM + 1] = dsh[i][2];
-		B[5][i * DIM + 2] = dsh[i][1];
-	}
+    for (i = 0; i < NPE; ++i) {
+        B[0][i * DIM    ] = dsh[i][0];
+        B[0][i * DIM + 1] = 0;
+        B[0][i * DIM + 2] = 0;
+        B[1][i * DIM    ] = 0;
+        B[1][i * DIM + 1] = dsh[i][1];
+        B[1][i * DIM + 2] = 0;
+        B[2][i * DIM    ] = 0;
+        B[2][i * DIM + 1] = 0;
+        B[2][i * DIM + 2] = dsh[i][2];
+        B[3][i * DIM    ] = dsh[i][1];
+        B[3][i * DIM + 1] = dsh[i][0];
+        B[3][i * DIM + 2] = 0;
+        B[4][i * DIM    ] = dsh[i][2];
+        B[4][i * DIM + 1] = 0;
+        B[4][i * DIM + 2] = dsh[i][0];
+        B[5][i * DIM    ] = 0;
+        B[5][i * DIM + 1] = dsh[i][2];
+        B[5][i * DIM + 2] = dsh[i][1];
+    }
 }
 
 int assembly_jac(Mat A)
@@ -210,12 +204,12 @@ int assembly_jac(Mat A)
                 }
 
                 get_elem_stencil(u_eqn, sex + ex, sey + ey, sez + ez);
-//                ierr = MatSetValuesStencil(A, NPE * DIM, u_eqn, NPE * DIM, u_eqn, Ae, ADD_VALUES); CHKERRQ(ierr);
+                //ierr = MatSetValuesStencil(A, NPE * DIM, u_eqn, NPE * DIM, u_eqn, Ae, ADD_VALUES); CHKERRQ(ierr);
             }
         }
     }
-//    ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
-//    ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+    //    ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+    //    ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
 
     return ierr;
 }
@@ -227,7 +221,7 @@ int assembly_res(void)
     int ex, ey, ez, gp;
     int sex, sey, sez;
     int i, j;
-	double stress[6];
+    double stress[6];
     double be[NPE * DIM * NPE * DIM];
     double B[6][NPE * DIM];
 
@@ -242,7 +236,7 @@ int assembly_res(void)
                 for(gp = 0; gp < NGP; ++gp) {
 
                     calc_B(gp, B);
-					micropp_C_get_stress3(gp, stress);
+                    micropp_C_get_stress3(gp, stress);
 
                     for (i = 0; i < NPE * DIM; i++) {
                         for (j = 0; j < NVOI; j++) {
@@ -253,7 +247,6 @@ int assembly_res(void)
                 }
 
                 get_elem_stencil(u_eqn, sex + ex, sey + ey, sez + ez);
-//                ierr = MatSetValuesStencil(A, NPE * DIM, u_eqn, NPE * DIM, u_eqn, Ae, ADD_VALUES); CHKERRQ(ierr);
             }
         }
     }
@@ -263,51 +256,68 @@ int assembly_res(void)
 }
 
 
-int solve_Ax(void)
+int solve_Ax(Mat A, Vec b, Vec x)
 {
+    int ierr;
+    KSP ksp;
+    PC pc;
+
+    ierr = KSPCreate(PETSC_COMM_WORLD, &ksp); CHKERRQ(ierr);
+    ierr = KSPSetOperators(ksp, A, A); CHKERRQ(ierr);
+    ierr = KSPSetType(ksp, KSPCG); CHKERRQ(ierr);
+    ierr = KSPGetPC(ksp, &pc); CHKERRQ(ierr);
+    ierr = PCSetType(pc, PCBDDC); CHKERRQ(ierr);
+    ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
+    ierr = KSPSetUp(ksp); CHKERRQ(ierr);
+
+    ierr = KSPSolve(ksp, b, x); CHKERRQ(ierr);
+
+    ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
+
+    return ierr;
 }
 
 
 void get_elem_stencil(MatStencil s_u[NPE * DIM], int ei, int ej, int ek)
 {
-  /* displacement */
-  /* node 0 */
-  s_u[0].i = ei ; s_u[0].j = ej; s_u[0].k = ek; s_u[0].c = 0; /* Ux0 */
-  s_u[1].i = ei ; s_u[1].j = ej; s_u[1].k = ek; s_u[1].c = 1; /* Uy0 */
-  s_u[2].i = ei ; s_u[2].j = ej; s_u[2].k = ek; s_u[2].c = 2; /* Uz0 */
+    /* displacement */
+    /* node 0 */
+    s_u[0].i = ei ; s_u[0].j = ej; s_u[0].k = ek; s_u[0].c = 0; /* Ux0 */
+    s_u[1].i = ei ; s_u[1].j = ej; s_u[1].k = ek; s_u[1].c = 1; /* Uy0 */
+    s_u[2].i = ei ; s_u[2].j = ej; s_u[2].k = ek; s_u[2].c = 2; /* Uz0 */
 
-  /* node 1 */
-  s_u[3].i = ei + 1; s_u[3].j = ej; s_u[3].k = ek; s_u[3].c = 0; /* Ux0 */
-  s_u[4].i = ei + 1; s_u[4].j = ej; s_u[4].k = ek; s_u[4].c = 1; /* Uy0 */
-  s_u[5].i = ei + 1; s_u[5].j = ej; s_u[5].k = ek; s_u[5].c = 2; /* Uz0 */
+    /* node 1 */
+    s_u[3].i = ei + 1; s_u[3].j = ej; s_u[3].k = ek; s_u[3].c = 0; /* Ux0 */
+    s_u[4].i = ei + 1; s_u[4].j = ej; s_u[4].k = ek; s_u[4].c = 1; /* Uy0 */
+    s_u[5].i = ei + 1; s_u[5].j = ej; s_u[5].k = ek; s_u[5].c = 2; /* Uz0 */
 
-  /* node 2 */
-  s_u[6].i = ei + 1; s_u[6].j = ej + 1; s_u[6].k = ek; s_u[6].c = 0; /* Ux0 */
-  s_u[7].i = ei + 1; s_u[7].j = ej + 1; s_u[7].k = ek; s_u[7].c = 1; /* Uy0 */
-  s_u[8].i = ei + 1; s_u[8].j = ej + 1; s_u[8].k = ek; s_u[8].c = 2; /* Uz0 */
+    /* node 2 */
+    s_u[6].i = ei + 1; s_u[6].j = ej + 1; s_u[6].k = ek; s_u[6].c = 0; /* Ux0 */
+    s_u[7].i = ei + 1; s_u[7].j = ej + 1; s_u[7].k = ek; s_u[7].c = 1; /* Uy0 */
+    s_u[8].i = ei + 1; s_u[8].j = ej + 1; s_u[8].k = ek; s_u[8].c = 2; /* Uz0 */
 
-  /* node 3 */
-  s_u[9].i = ei; s_u[9].j = ej + 1; s_u[9].k = ek; s_u[9].c = 0; /* Ux0 */
-  s_u[10].i = ei; s_u[10].j = ej + 1; s_u[10].k = ek; s_u[10].c = 1; /* Uy0 */
-  s_u[11].i = ei; s_u[11].j = ej + 1; s_u[11].k = ek; s_u[11].c = 2; /* Uz0 */
+    /* node 3 */
+    s_u[9].i = ei; s_u[9].j = ej + 1; s_u[9].k = ek; s_u[9].c = 0; /* Ux0 */
+    s_u[10].i = ei; s_u[10].j = ej + 1; s_u[10].k = ek; s_u[10].c = 1; /* Uy0 */
+    s_u[11].i = ei; s_u[11].j = ej + 1; s_u[11].k = ek; s_u[11].c = 2; /* Uz0 */
 
-  /* node 4 */
-  s_u[12].i = ei ; s_u[12].j = ej; s_u[12].k = ek + 1; s_u[12].c = 0; /* Ux0 */
-  s_u[13].i = ei ; s_u[13].j = ej; s_u[13].k = ek + 1; s_u[13].c = 1; /* Uy0 */
-  s_u[14].i = ei ; s_u[14].j = ej; s_u[14].k = ek + 1; s_u[14].c = 2; /* Uz0 */
+    /* node 4 */
+    s_u[12].i = ei ; s_u[12].j = ej; s_u[12].k = ek + 1; s_u[12].c = 0; /* Ux0 */
+    s_u[13].i = ei ; s_u[13].j = ej; s_u[13].k = ek + 1; s_u[13].c = 1; /* Uy0 */
+    s_u[14].i = ei ; s_u[14].j = ej; s_u[14].k = ek + 1; s_u[14].c = 2; /* Uz0 */
 
-  /* node 5 */
-  s_u[15].i = ei + 1; s_u[15].j = ej; s_u[15].k = ek + 1; s_u[15].c = 0; /* Ux0 */
-  s_u[16].i = ei + 1; s_u[16].j = ej; s_u[16].k = ek + 1; s_u[16].c = 1; /* Uy0 */
-  s_u[17].i = ei + 1; s_u[17].j = ej; s_u[17].k = ek + 1; s_u[17].c = 2; /* Uz0 */
+    /* node 5 */
+    s_u[15].i = ei + 1; s_u[15].j = ej; s_u[15].k = ek + 1; s_u[15].c = 0; /* Ux0 */
+    s_u[16].i = ei + 1; s_u[16].j = ej; s_u[16].k = ek + 1; s_u[16].c = 1; /* Uy0 */
+    s_u[17].i = ei + 1; s_u[17].j = ej; s_u[17].k = ek + 1; s_u[17].c = 2; /* Uz0 */
 
-  /* node 6 */
-  s_u[18].i = ei + 1; s_u[18].j = ej + 1; s_u[18].k = ek + 1; s_u[18].c = 0; /* Ux0 */
-  s_u[19].i = ei + 1; s_u[19].j = ej + 1; s_u[19].k = ek + 1; s_u[19].c = 1; /* Uy0 */
-  s_u[20].i = ei + 1; s_u[20].j = ej + 1; s_u[20].k = ek + 1; s_u[20].c = 2; /* Uz0 */
+    /* node 6 */
+    s_u[18].i = ei + 1; s_u[18].j = ej + 1; s_u[18].k = ek + 1; s_u[18].c = 0; /* Ux0 */
+    s_u[19].i = ei + 1; s_u[19].j = ej + 1; s_u[19].k = ek + 1; s_u[19].c = 1; /* Uy0 */
+    s_u[20].i = ei + 1; s_u[20].j = ej + 1; s_u[20].k = ek + 1; s_u[20].c = 2; /* Uz0 */
 
-  /* node 7 */
-  s_u[21].i = ei; s_u[21].j = ej + 1; s_u[21].k = ek + 1; s_u[21].c = 0; /* Ux0 */
-  s_u[22].i = ei; s_u[22].j = ej + 1; s_u[22].k = ek + 1; s_u[22].c = 1; /* Uy0 */
-  s_u[23].i = ei; s_u[23].j = ej + 1; s_u[23].k = ek + 1; s_u[23].c = 2; /* Uz0 */
+    /* node 7 */
+    s_u[21].i = ei; s_u[21].j = ej + 1; s_u[21].k = ek + 1; s_u[21].c = 0; /* Ux0 */
+    s_u[22].i = ei; s_u[22].j = ej + 1; s_u[22].k = ek + 1; s_u[22].c = 1; /* Uy0 */
+    s_u[23].i = ei; s_u[23].j = ej + 1; s_u[23].k = ek + 1; s_u[23].c = 2; /* Uz0 */
 }

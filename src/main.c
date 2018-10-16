@@ -26,42 +26,41 @@
 
 int main(int argc,char **args)
 {
-  	int ierr;
-  	int time_s, newton_it;
-	double norm;
-  	char mess[64];
+    int ierr;
+    int time_s, newton_it;
+    double norm;
+    char mess[64];
 
-  	ierr = PetscInitialize(&argc,&args,(char*)0,help); if(ierr) return ierr;
+    ierr = PetscInitialize(&argc,&args,(char*)0,help); if(ierr) return ierr;
 
-  	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  	MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &nproc);
 
-  	ierr = init();
+    ierr = init();
 
-  	sprintf(mess, "Problem size %d\n", nproc);
-  	print0(mess);
+    sprintf(mess, "Problem size %d\n", nproc);
+    print0(mess);
 
-  	for(time_s = 0; time_s < tsteps; ++time_s) {
+    for(time_s = 0; time_s < tsteps; ++time_s) {
 
-//		ierr = set_bc(time_s);
+        //ierr = set_bc(time_s);
 
         newton_it = 0;
-  		while(newton_it < NEWTON_ITS ) {
+        while(newton_it < NEWTON_ITS ) {
 
-//  			ierr = set_strains();
+            //ierr = set_strains();
 
-//	  		ierr = assembly_res();
-        	/* norm = |b| */
+            //ierr = assembly_res();
+            /* norm = |b| */
 
-	  		ierr = assembly_jac();
-//	  		ierr = solve_Ax();
-        	/* u = u + du */
+            ierr = assembly_jac();
+            //ierr = solve_Ax();
+            /* u = u + du */
 
-        	newton_it ++;
+            newton_it ++;
         }
-  	}
+    }
 
-//    ierr = solve_elasticity_2d(nx,ny);CHKERRQ(ierr);
-  	ierr = PetscFinalize();
-  	return ierr;
+    ierr = PetscFinalize();
+    return ierr;
 }
