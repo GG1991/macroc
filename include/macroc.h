@@ -25,16 +25,28 @@
 
 #include <stdio.h>
 
-#include <petscksp.h>
-#include <petscdm.h>
-#include <petscdmda.h>
+#include "petscksp.h"
+#include "petscdm.h"
+#include "petscdmda.h"
 
 #define NGP        8
 #define NPE        8
+#define DIM        3
 #define NEWTON_TOL 1.0e-1
 #define NEWTON_ITS 4
+#define CONSTXG    0.577350269189626
 
 #define print0(mess) { if(!rank) printf("%s", mess); }
+
+static double xg[8][3] = {
+    { -CONSTXG, -CONSTXG, -CONSTXG },
+    { +CONSTXG, -CONSTXG, -CONSTXG },
+    { +CONSTXG, +CONSTXG, -CONSTXG },
+    { -CONSTXG, +CONSTXG, -CONSTXG },
+    { -CONSTXG, -CONSTXG, +CONSTXG },
+    { +CONSTXG, -CONSTXG, +CONSTXG },
+    { +CONSTXG, +CONSTXG, +CONSTXG },
+    { -CONSTXG, +CONSTXG, +CONSTXG } };
 
 static char help[] = "FE code to solve macroscopic problems with PETSc.\n";
 int rank, nproc, nproc_x, nproc_y, nproc_z;
@@ -58,5 +70,7 @@ int set_strains();
 int assembly_jac();
 int assembly_res();
 int solve_Ax();
+
+void get_elem_stencil(MatStencil s_u[NPE * DIM], int ei, int ej, int ek);
 
 #endif
