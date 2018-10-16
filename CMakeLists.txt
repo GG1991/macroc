@@ -49,3 +49,6 @@ file(GLOB SOURCES src/*.c)
 link_libraries("-lm" "-lstdc++" ${PETSC_LIB} ${MPI_LIBRARIES} ${MICROPP_LIB})
 
 add_executable(macroc ${SOURCES})
+
+enable_testing()
+add_subdirectory(tests)
