@@ -75,6 +75,4 @@ int assembly_jac(Mat A);
 int assembly_res(Vec b);
 int solve_Ax();
 
-void get_elem_stencil(MatStencil s_u[NPE * DIM], int ei, int ej, int ek);
-
 #endif
