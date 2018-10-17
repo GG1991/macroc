@@ -21,6 +21,7 @@
 
 #include "macroc.h"
 
+
 int init()
 {
     int ierr;
@@ -30,17 +31,15 @@ int init()
     ts = TIME_STEPS;
     dt = DT;
 
-    nx = 10; ny = 10; nz = 10;
-
     PetscOptionsGetReal(NULL, NULL, "-dt", &dt, NULL);
     PetscOptionsGetInt(NULL, NULL, "-ts", &ts, NULL);
 
     DMBoundaryType bx = DM_BOUNDARY_NONE, by = DM_BOUNDARY_NONE,
                    bz = DM_BOUNDARY_NONE;
     ierr = DMDACreate3d(PETSC_COMM_WORLD, bx, by, bz, DMDA_STENCIL_BOX,
-                        10, 10, 10,
+                        NX, NY, NZ,
                         PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,
-                        3, 1, NULL, NULL, NULL, &DA);
+                        DIM, 1, NULL, NULL, NULL, &DA);
     ierr = DMDASetUniformCoordinates(DA, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
     CHKERRQ(ierr);
     ierr = DMSetMatType(DA, MATAIJ); CHKERRQ(ierr);
@@ -50,20 +49,6 @@ int init()
     ierr = DMCreateGlobalVector(DA, &u); CHKERRQ(ierr);
     ierr = DMCreateGlobalVector(DA, &b); CHKERRQ(ierr);
     ierr = DMCreateGlobalVector(DA, &du); CHKERRQ(ierr);
-
-    int istart, iend;
-    //MatGetOwnershipRange(A, &istart, &iend);
-    //printf("rank %d - A: istart: %d - iend: %d\n", rank, istart, iend);
-
-    int sx, sy, sz;
-    //ierr = DMDAGetGhostCorners(DA, &sx, &sy, &sz, &nxl, &nyl, &nzl); CHKERRQ(ierr);
-    //printf("rank %d - sx: %d - sy: %d - sz: %d - nxl: %d - nyl: %d - nzl: %d\n", rank, sx, sy, sz, nxl, nyl, nzl);
-
-    ierr = DMDAGetElementsSizes(DA, &nexl, &neyl, &nezl); CHKERRQ(ierr);
-    printf("rank %d - nexl: %d - neyl: %d - nezl: %d\n", rank, nexl, neyl, nezl);
-
-    //ierr = VecGetOwnershipRange(u, &istart, &iend); CHKERRQ(ierr);
-    //printf("rank %d - start: %d - end: %d\n", rank, istart, iend);
 
     dx = 1.;
     dy = 1.;
@@ -80,8 +65,13 @@ int init()
         micropp_C_material_print(1);
     }
 
+    int nex, ney, nez;
+    ierr = DMDAGetElementsSizes(DA, &nex, &ney, &nez); CHKERRQ(ierr);
+    printf("rank%d\tne:%d\tnex:%d\tney:%d\tnez:%d\n",
+           rank, nex * ney * nez, nex, ney, nez);
+
     // Initializes <micro> declared in <micropp_c_wrapper.h>
-    int ngpl = nexl * neyl * nezl * NGP; 
+    int ngpl = nex * ney * nez * NGP;
     int size[3] = { 5, 5, 5 };
     int type = 1;
     double params[4] = { 1., 1., 1., .5 };

@@ -40,6 +40,9 @@
 #define FINAL_TIME 10.0
 #define TIME_STEPS 1
 #define DT         0.0001
+#define NX         2
+#define NY         2
+#define NZ         2
 
 #define print0(mess) { if(!rank) printf("%s", mess); }
 #define gpi(ex, ey, ez, gp) ( (ez * nexl * neyl + ey * nexl + ex) * NGP + gp)
@@ -58,8 +61,6 @@ static double xg[8][3] = {
 
 int rank, nproc, nproc_x, nproc_y, nproc_z;
 
-int nx, ny, nz, nxl, nyl, nzl;
-int nex, ney, nez, nexl, neyl, nezl;
 int nelem, nelem_local;
 int ngpl;
 

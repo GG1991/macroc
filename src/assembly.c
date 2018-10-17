@@ -33,6 +33,8 @@ int set_bc(int time_step, Vec u)
     int i, j, k, d;
     int si, sj, sk;
     int nx, ny, nz;
+    int M, N, P;
+    int nbcs;
 
     ISLocalToGlobalMapping ltogm;
 
@@ -43,94 +45,95 @@ int set_bc(int time_step, Vec u)
     }
     UY = 5.;
 
+    ierr = DMDAGetInfo(DA,0,&M,&N,&P,0,0,0,0,0,0,0,0,0); CHKERRQ(ierr);
     ierr = DMGetLocalToGlobalMapping(DA, &ltogm); CHKERRQ(ierr);
     ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
-    //ierr = DMDAGetGhostCorners(DA, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
-    ierr = DMDAGetCorners(DA, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
+    ierr = DMDAGetGhostCorners(DA, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
 
-    bc_global_ids = malloc(2 * ny * nz * DIM * sizeof(int));
-    bc_vals = malloc(2 * ny * nz * DIM * sizeof(double));
+    bc_global_ids = malloc(ny * nz * DIM * sizeof(int));
+    bc_vals = malloc(ny * nz * DIM * sizeof(double));
 
     /* init the entries to -1 so VecSetValues will ignore them */
-    for (i = 0; i < 2 * ny * nz * DIM; ++i){
+    for (i = 0; i < ny * nz * DIM; ++i){
         bc_global_ids[i] = -1;
     }
 
-    int count = 0;
-
     i = 0; /* X = 0 */
-    for (j = 0; j < ny; j++) {
-        for (k = 0; k < nz; k++) {
-            for (d = 0; d < DIM; d++) {
+    for (k = 0; k < nz; ++k) {
+        for (j = 0; j < ny; ++j) {
+            for (d = 0; d < DIM; ++d) {
 
                 int local_id = i + j * nx + k * nx * ny;
+                int index = (k * ny + j) * DIM + d;
 
-                bc_global_ids[count] = g_idx[DIM * local_id + d];
-                bc_vals[count] =  0.;
-                count ++;
+                bc_global_ids[index] = g_idx[local_id * DIM + d];
+                bc_vals[index] =  0.;
             }
         }
+    }
+
+    nbcs = 0;
+    if (si == 0) {
+        nbcs = ny * nz * DIM;
+    }
+
+    ierr = VecSetValues(u, nbcs, bc_global_ids, bc_vals,
+                        INSERT_VALUES); CHKERRQ(ierr);
+
+    for (i = 0; i < ny * nz * DIM; ++i){
+        bc_global_ids[i] = -1;
     }
 
     i = nx - 1; /* X = LX */
-    for (j = 0; j < ny; j++) {
-        for (k = 0; k < nz; k++) {
-            for (d = 0; d < DIM; d++) {
+    for (k = 0; k < nz; ++k) {
+        for (j = 0; j < ny; ++j) {
+            for (d = 0; d < DIM; ++d) {
 
                 int local_id = i + j * nx + k * nx * ny;
 
-                bc_global_ids[count] = g_idx[DIM * local_id + d];
-                bc_vals[count] =  (d == 1) ? UY : 0.;
-                count ++;
+                int index = (k * ny + j) * DIM + d;
+
+                bc_global_ids[index] = g_idx[local_id * DIM + d];
+                bc_vals[index] = (d == 1) ? UY : 0.;
             }
         }
     }
 
-    ierr = ISLocalToGlobalMappingRestoreIndices(ltogm, &g_idx); CHKERRQ(ierr);
-
-    if(u){
-        ierr = VecSetValues(u, count, bc_global_ids, bc_vals, INSERT_VALUES);
-        CHKERRQ(ierr);
-        ierr = VecAssemblyBegin(u); CHKERRQ(ierr);
-        ierr = VecAssemblyEnd(u); CHKERRQ(ierr);
+    nbcs = 0;
+    if (si + nx == M) {
+        nbcs = ny * nz * DIM;
     }
 
-    /* Debug */
-    /*
-    int rank;
-    ierr = MPI_Comm_rank(PETSC_COMM_WORLD, &rank); CHKERRQ(ierr);
-    printf("rank:%d\tsi:%d\tsj:%d\tsk:%d\tnx:%d\tny:%d\tnz:%d\n",
-           rank, si, sj, sk, nx, ny, nz);
-    ierr = VecView(u, PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
-    */
+    ierr = VecSetValues(u, nbcs, bc_global_ids, bc_vals,
+                        INSERT_VALUES); CHKERRQ(ierr);
+
+    ierr = VecAssemblyBegin(u); CHKERRQ(ierr);
+    ierr = VecAssemblyEnd(u); CHKERRQ(ierr);
+
+    //VecView(u, PETSC_VIEWER_STDOUT_WORLD);
+
+    ierr = ISLocalToGlobalMappingRestoreIndices(ltogm, &g_idx); CHKERRQ(ierr);
 
     free(bc_global_ids);
     free(bc_vals);
-
     return ierr;
 }
 
 
 int set_strains()
 {
-    int ex, ey, ez, gp;
+    int ie, gp;
     int ierr = 0;
     int gpi_;
     double strain[6];
 
-    for(ex = 0; ex < nexl; ++ex) {
-        for(ey = 0; ey < neyl; ++ey) {
-            for(ez = 0; ex < nezl; ++ez) {
+    for(ie = 0; ie < nelem; ++ie) {
 
-                for(gp = 0; gp < NGP; ++gp) {
+        for(gp = 0; gp < NGP; ++gp) {
 
-                    strain[0] = 0.0;
-//                    gpi_ = gpi(ex, ey, ez, gp);
-//                    micropp_C_set_strain3(gpi_, strain);
-
-                }
-
-            }
+            strain[0] = 0.0;
+            //gpi_ = gpi(ex, ey, ez, gp);
+            //micropp_C_set_strain3(gpi_, strain);
         }
     }
 
@@ -151,8 +154,8 @@ int assembly_jac(Mat A)
 
     const PetscInt *eix, *eixp;
 
-    ierr = MatZeroEntries(A);CHKERRQ(ierr);
-    DMDAGetElements(DA, &nelem, &npe, &eix);
+    ierr = MatZeroEntries(A); CHKERRQ(ierr);
+    ierr = DMDAGetElements(DA, &nelem, &npe, &eix); CHKERRQ(ierr);
     for(ie = 0; ie < nelem; ++ie) {
 
         memset(Ae, 0., NPE * DIM * NPE * DIM * sizeof(double));
