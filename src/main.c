@@ -49,10 +49,10 @@ int main(int argc,char **args)
             //ierr = set_strains();
             //micropp_C_homogenize();
 
-            ierr = assembly_res(b);
+            //ierr = assembly_res(b);
             /* norm = |b| */
 
-            ierr = assembly_jac(A);
+            //ierr = assembly_jac(A);
             //ierr = solve_Ax();
             /* u = u + du */
 

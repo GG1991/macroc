@@ -25,15 +25,15 @@
 int set_bc(int time_step, Vec u)
 {
     int ierr;
-    int *bc_global_ids;
-    double UY;
-    double time = time_step * dt;
-    double *bc_vals;
+    PetscInt *bc_global_ids;
+    PetscReal UY;
+    PetscReal time = time_step * dt;
+    PetscReal *bc_vals;
     const PetscInt *g_idx;
     int i, j, k, d;
-    int si, sj, sk;
-    int nx, ny, nz;
-    int M, N, P;
+    PetscInt si, sj, sk;
+    PetscInt nx, ny, nz;
+    PetscInt M, N, P;
     int nbcs;
 
     ISLocalToGlobalMapping ltogm;
@@ -50,8 +50,8 @@ int set_bc(int time_step, Vec u)
     ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
     ierr = DMDAGetGhostCorners(DA, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
 
-    bc_global_ids = malloc(ny * nz * DIM * sizeof(int));
-    bc_vals = malloc(ny * nz * DIM * sizeof(double));
+    bc_global_ids = malloc(ny * nz * DIM * sizeof(PetscInt));
+    bc_vals = malloc(ny * nz * DIM * sizeof(PetscReal));
 
     /* init the entries to -1 so VecSetValues will ignore them */
     for (i = 0; i < ny * nz * DIM; ++i){
@@ -63,8 +63,8 @@ int set_bc(int time_step, Vec u)
         for (j = 0; j < ny; ++j) {
             for (d = 0; d < DIM; ++d) {
 
-                int local_id = i + j * nx + k * nx * ny;
-                int index = (k * ny + j) * DIM + d;
+                PetscInt local_id = i + j * nx + k * nx * ny;
+                PetscInt index = (k * ny + j) * DIM + d;
 
                 bc_global_ids[index] = g_idx[local_id * DIM + d];
                 bc_vals[index] =  0.;
@@ -89,9 +89,9 @@ int set_bc(int time_step, Vec u)
         for (j = 0; j < ny; ++j) {
             for (d = 0; d < DIM; ++d) {
 
-                int local_id = i + j * nx + k * nx * ny;
+                PetscInt local_id = i + j * nx + k * nx * ny;
 
-                int index = (k * ny + j) * DIM + d;
+                PetscInt index = (k * ny + j) * DIM + d;
 
                 bc_global_ids[index] = g_idx[local_id * DIM + d];
                 bc_vals[index] = (d == 1) ? UY : 0.;

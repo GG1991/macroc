@@ -67,8 +67,8 @@ int ngpl;
 double lx, ly, lz, dx, dy, dz;
 double wg;
 
-int ts;
-double dt, final_time;
+PetscInt ts;
+PetscReal dt, final_time;
 double UY, U_max;
 
 DM DA;
