@@ -22,8 +22,92 @@
 #include "macroc.h"
 
 
-int set_bc(int time_step)
+int set_bc(int time_step, Vec u)
 {
+    int ierr;
+    int *bc_global_ids;
+    double UY;
+    double time = time_step * dt;
+    double *bc_vals;
+    const PetscInt *g_idx;
+    int i, j, k, d;
+    int si, sj, sk;
+    int nx, ny, nz;
+
+    ISLocalToGlobalMapping ltogm;
+
+    if(time < final_time / 2.){
+        UY = U_max * (time / final_time);
+    } else {
+        UY = U_max;
+    }
+    UY = 5.;
+
+    ierr = DMGetLocalToGlobalMapping(DA, &ltogm); CHKERRQ(ierr);
+    ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
+    //ierr = DMDAGetGhostCorners(DA, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
+    ierr = DMDAGetCorners(DA, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
+
+    bc_global_ids = malloc(2 * ny * nz * DIM * sizeof(int));
+    bc_vals = malloc(2 * ny * nz * DIM * sizeof(double));
+
+    /* init the entries to -1 so VecSetValues will ignore them */
+    for (i = 0; i < 2 * ny * nz * DIM; ++i){
+        bc_global_ids[i] = -1;
+    }
+
+    int count = 0;
+
+    i = 0; /* X = 0 */
+    for (j = 0; j < ny; j++) {
+        for (k = 0; k < nz; k++) {
+            for (d = 0; d < DIM; d++) {
+
+                int local_id = i + j * nx + k * nx * ny;
+
+                bc_global_ids[count] = g_idx[DIM * local_id + d];
+                bc_vals[count] =  0.;
+                count ++;
+            }
+        }
+    }
+
+    i = nx - 1; /* X = LX */
+    for (j = 0; j < ny; j++) {
+        for (k = 0; k < nz; k++) {
+            for (d = 0; d < DIM; d++) {
+
+                int local_id = i + j * nx + k * nx * ny;
+
+                bc_global_ids[count] = g_idx[DIM * local_id + d];
+                bc_vals[count] =  (d == 1) ? UY : 0.;
+                count ++;
+            }
+        }
+    }
+
+    ierr = ISLocalToGlobalMappingRestoreIndices(ltogm, &g_idx); CHKERRQ(ierr);
+
+    if(u){
+        ierr = VecSetValues(u, count, bc_global_ids, bc_vals, INSERT_VALUES);
+        CHKERRQ(ierr);
+        ierr = VecAssemblyBegin(u); CHKERRQ(ierr);
+        ierr = VecAssemblyEnd(u); CHKERRQ(ierr);
+    }
+
+    /* Debug */
+    /*
+    int rank;
+    ierr = MPI_Comm_rank(PETSC_COMM_WORLD, &rank); CHKERRQ(ierr);
+    printf("rank:%d\tsi:%d\tsj:%d\tsk:%d\tnx:%d\tny:%d\tnz:%d\n",
+           rank, si, sj, sk, nx, ny, nz);
+    ierr = VecView(u, PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+    */
+
+    free(bc_global_ids);
+    free(bc_vals);
+
+    return ierr;
 }
 
 
@@ -53,67 +137,6 @@ int set_strains()
     return ierr;
 }
 
-
-void calc_B(int gp, double B[6][NPE * DIM])
-{
-    int i;
-    double dx = 1., dy = 1., dz = 1.;
-
-    const double dsh[NPE][DIM] = {
-        { 
-            -(1 - xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
-            -(1 - xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
-            -(1 - xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
-        { 
-            +(1 - xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
-            -(1 + xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
-            -(1 + xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
-        { 
-            +(1 + xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
-            +(1 + xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
-            -(1 + xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
-        { 
-            -(1 + xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
-            +(1 - xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
-            -(1 - xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
-        { 
-            -(1 - xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
-            -(1 - xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
-            +(1 - xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
-        { 
-            +(1 - xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
-            -(1 + xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
-            +(1 + xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
-        { 
-            +(1 + xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
-            +(1 + xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
-            +(1 + xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
-        { 
-            -(1 + xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
-            +(1 - xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
-            +(1 - xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz } };
-
-    for (i = 0; i < NPE; ++i) {
-        B[0][i * DIM    ] = dsh[i][0];
-        B[0][i * DIM + 1] = 0;
-        B[0][i * DIM + 2] = 0;
-        B[1][i * DIM    ] = 0;
-        B[1][i * DIM + 1] = dsh[i][1];
-        B[1][i * DIM + 2] = 0;
-        B[2][i * DIM    ] = 0;
-        B[2][i * DIM + 1] = 0;
-        B[2][i * DIM + 2] = dsh[i][2];
-        B[3][i * DIM    ] = dsh[i][1];
-        B[3][i * DIM + 1] = dsh[i][0];
-        B[3][i * DIM + 2] = 0;
-        B[4][i * DIM    ] = dsh[i][2];
-        B[4][i * DIM + 1] = 0;
-        B[4][i * DIM + 2] = dsh[i][0];
-        B[5][i * DIM    ] = 0;
-        B[5][i * DIM + 1] = dsh[i][2];
-        B[5][i * DIM + 2] = dsh[i][1];
-    }
-}
 
 int assembly_jac(Mat A)
 {
@@ -166,6 +189,7 @@ int assembly_jac(Mat A)
 
     return ierr;
 }
+
 
 int assembly_res(Vec b)
 {
@@ -235,4 +259,66 @@ int solve_Ax(Mat A, Vec b, Vec x)
     ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
 
     return ierr;
+}
+
+
+void calc_B(int gp, double B[6][NPE * DIM])
+{
+    int i;
+    double dx = 1., dy = 1., dz = 1.;
+
+    const double dsh[NPE][DIM] = {
+        { 
+            -(1 - xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
+            -(1 - xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
+            -(1 - xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
+        { 
+            +(1 - xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
+            -(1 + xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
+            -(1 + xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
+        { 
+            +(1 + xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
+            +(1 + xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
+            -(1 + xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
+        { 
+            -(1 + xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
+            +(1 - xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
+            -(1 - xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
+        { 
+            -(1 - xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
+            -(1 - xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
+            +(1 - xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
+        { 
+            +(1 - xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
+            -(1 + xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
+            +(1 + xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
+        { 
+            +(1 + xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
+            +(1 + xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
+            +(1 + xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
+        { 
+            -(1 + xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
+            +(1 - xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
+            +(1 - xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz } };
+
+    for (i = 0; i < NPE; ++i) {
+        B[0][i * DIM    ] = dsh[i][0];
+        B[0][i * DIM + 1] = 0;
+        B[0][i * DIM + 2] = 0;
+        B[1][i * DIM    ] = 0;
+        B[1][i * DIM + 1] = dsh[i][1];
+        B[1][i * DIM + 2] = 0;
+        B[2][i * DIM    ] = 0;
+        B[2][i * DIM + 1] = 0;
+        B[2][i * DIM + 2] = dsh[i][2];
+        B[3][i * DIM    ] = dsh[i][1];
+        B[3][i * DIM + 1] = dsh[i][0];
+        B[3][i * DIM + 2] = 0;
+        B[4][i * DIM    ] = dsh[i][2];
+        B[4][i * DIM + 1] = 0;
+        B[4][i * DIM + 2] = dsh[i][0];
+        B[5][i * DIM    ] = 0;
+        B[5][i * DIM + 1] = dsh[i][2];
+        B[5][i * DIM + 2] = dsh[i][1];
+    }
 }

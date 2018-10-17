@@ -39,9 +39,9 @@ int main(int argc,char **args)
     sprintf(mess, "Problem size %d\n", nproc);
     print0(mess);
 
-    for(time_s = 0; time_s < tsteps; ++time_s) {
+    for(time_s = 0; time_s < ts; ++time_s) {
 
-        //ierr = set_bc(time_s);
+        ierr = set_bc(time_s, u);
 
         newton_it = 0;
         while(newton_it < NEWTON_ITS) {

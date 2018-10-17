@@ -37,6 +37,10 @@
 #define NEWTON_ITS 1
 #define CONSTXG    0.577350269189626
 
+#define FINAL_TIME 10.0
+#define TIME_STEPS 1
+#define DT         0.0001
+
 #define print0(mess) { if(!rank) printf("%s", mess); }
 #define gpi(ex, ey, ez, gp) ( (ez * nexl * neyl + ey * nexl + ex) * NGP + gp)
 
@@ -58,10 +62,13 @@ int nx, ny, nz, nxl, nyl, nzl;
 int nex, ney, nez, nexl, neyl, nezl;
 int nelem, nelem_local;
 int ngpl;
-int tsteps;
 
 double lx, ly, lz, dx, dy, dz;
 double wg;
+
+int ts;
+double dt, final_time;
+double UY, U_max;
 
 DM DA;
 Mat A;
@@ -69,10 +76,12 @@ Vec u, du, b;
 
 int init();
 int finish();
-int set_bc(int time_step);
+int set_bc(int time_step, Vec u);
 int set_strains();
 int assembly_jac(Mat A);
 int assembly_res(Vec b);
 int solve_Ax();
+
+void calc_B(int gp, double B[6][NPE * DIM]);
 
 #endif

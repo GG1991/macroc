@@ -53,3 +53,10 @@ The mesh size and the processors in each direction are given by command line as:
 -da_processors_y <MY> number of processors in y direction
 -da_processors_z <MZ> number of processors in z direction
 ```
+
+Examples
+--------
+
+```bash
+mpirun -np 1 ./macroc -da_grid_x 4 -da_grid_y 4 -da_grid_z 2
+```

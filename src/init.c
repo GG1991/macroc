@@ -26,8 +26,14 @@ int init()
     int ierr;
     char mess[64];
 
-    tsteps = 1;
+    final_time = FINAL_TIME;
+    ts = TIME_STEPS;
+    dt = DT;
+
     nx = 10; ny = 10; nz = 10;
+
+    PetscOptionsGetReal(NULL, NULL, "-dt", &dt, NULL);
+    PetscOptionsGetInt(NULL, NULL, "-ts", &ts, NULL);
 
     DMBoundaryType bx = DM_BOUNDARY_NONE, by = DM_BOUNDARY_NONE,
                    bz = DM_BOUNDARY_NONE;
