@@ -4,6 +4,7 @@ set(CMAKE_BUILD_TYPE Debug)
 # The test files I care only (create a list)
 set(testsources
   test_dm_1.c
+  test_dm_2.c
   )
 
 # Iterate over the list above
