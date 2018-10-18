@@ -42,9 +42,9 @@ int main(int argc,char **argv)
     const PetscInt *g_idx;
 
     int i, j, d;
-    int si, sj;
-    int nx, ny;
-    int M, N;
+    PetscInt si, sj;
+    PetscInt nx, ny;
+    PetscInt M, N;
     int nbcs;
 
     int rank;

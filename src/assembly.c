@@ -124,24 +124,39 @@ PetscErrorCode set_strains()
     PetscErrorCode ierr;
     PetscInt ie, nelem, npe, gpi;
     PetscInt ix[NPE * DIM];
-    int gp, n, d;
-    double strain[6];
+    int i, j, gp, n, d;
+    double strain[NVOI];
     double u_e[NPE * DIM];
-    const PetscInt *eix, *eixp;
+    double B[NVOI][NPE * DIM];
 
+    const PetscInt *g_idx;
+    ISLocalToGlobalMapping ltogm;
+    ierr = DMGetLocalToGlobalMapping(DA, &ltogm); CHKERRQ(ierr);
+    ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
+
+    const PetscInt *eix, *eixp;
     ierr = DMDAGetElements(DA, &nelem, &npe, &eix); CHKERRQ(ierr);
+
     for(ie = 0; ie < nelem; ++ie) {
 
+        eixp = &eix[ie * NPE];
         for(n = 0; n < NPE; ++n) {
             for(d = 0; d < DIM; ++d) {
-                ix[n * DIM + d] = 1;
+                ix[n * DIM + d] = g_idx[eixp[n] * DIM + d];
             }
         }
-        //VecGetValues(u, NPE * DIM, ix, u_e);
+        VecGetValues(u, NPE * DIM, ix, u_e);
 
         for(gp = 0; gp < NGP; ++gp) {
 
-            strain[0] = 0.0;
+            calc_B(gp, B);
+            memset(strain, 0., NVOI * sizeof(double));
+            for(i = 0; i < NVOI; ++i) {
+                for(j = 0; j < NPE * DIM; ++j) {
+                    strain[i] += B[i][j] * u_e[j];
+                }
+            }
+
             gpi = ie * NGP + gp;
             micropp_C_set_strain3(gpi, strain);
         }
@@ -158,14 +173,20 @@ int assembly_jac(Mat A)
     PetscInt n, d, gp, gpi, npe;
     PetscInt ix[NPE * DIM];
     int i, j, k, l;
-    double ctan[36];
+    double ctan[NVOI * NVOI];
     double Ae[NPE * DIM * NPE * DIM];
-    double B[6][NPE * DIM];
-
-    const PetscInt *eix, *eixp;
+    double B[NVOI][NPE * DIM];
 
     ierr = MatZeroEntries(A); CHKERRQ(ierr);
+
+    const PetscInt *g_idx;
+    ISLocalToGlobalMapping ltogm;
+    ierr = DMGetLocalToGlobalMapping(DA, &ltogm); CHKERRQ(ierr);
+    ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
+
+    const PetscInt *eix, *eixp;
     ierr = DMDAGetElements(DA, &nelem, &npe, &eix); CHKERRQ(ierr);
+
     for(ie = 0; ie < nelem; ++ie) {
 
         memset(Ae, 0., NPE * DIM * NPE * DIM * sizeof(double));
@@ -190,7 +211,7 @@ int assembly_jac(Mat A)
         eixp = &eix[ie * NPE];
         for(n = 0; n < NPE; ++n) {
             for(d = 0; d < DIM; ++d) {
-                ix[n * DIM + d] = eix[n] * DIM + d;
+                ix[n * DIM + d] = g_idx[eixp[n] * DIM + d];
             }
         }
 
@@ -211,13 +232,18 @@ PetscErrorCode assembly_res(Vec b)
     PetscInt i, j;
     PetscInt n, d, gp, gpi, npe;
     PetscInt ix[NPE * DIM];
-    double stress[6];
+    double stress[NVOI];
     double be[NPE * DIM * NPE * DIM];
-    double B[6][NPE * DIM];
-
-    const PetscInt *eix, *eixp;
+    double B[NVOI][NPE * DIM];
 
     ierr = VecZeroEntries(b);
+
+    const PetscInt *g_idx;
+    ISLocalToGlobalMapping ltogm;
+    ierr = DMGetLocalToGlobalMapping(DA, &ltogm); CHKERRQ(ierr);
+    ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
+
+    const PetscInt *eix, *eixp;
     ierr = DMDAGetElements(DA, &nelem, &npe, &eix); CHKERRQ(ierr);
 
     for(ie = 0; ie < nelem; ++ie) {
@@ -240,7 +266,7 @@ PetscErrorCode assembly_res(Vec b)
         eixp = &eix[ie * NPE];
         for(n = 0; n < NPE; ++n) {
             for(d = 0; d < DIM; ++d) {
-                ix[n * DIM + d] = eix[n] * DIM + d;
+                ix[n * DIM + d] = g_idx[eixp[n] * DIM + d];
             }
         }
 
