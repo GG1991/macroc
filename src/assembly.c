@@ -129,10 +129,10 @@ PetscErrorCode set_strains()
     double u_e[NPE * DIM];
     double B[NVOI][NPE * DIM];
 
-    const PetscInt *g_idx;
-    ISLocalToGlobalMapping ltogm;
-    ierr = DMGetLocalToGlobalMapping(DA, &ltogm); CHKERRQ(ierr);
-    ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
+    Vec u_loc;
+    ierr = DMCreateLocalVector(DA, &u_loc); CHKERRQ(ierr);
+    ierr = DMGlobalToLocalBegin(DA, u, INSERT_VALUES, u_loc); CHKERRQ(ierr);
+    ierr = DMGlobalToLocalEnd(DA, u, INSERT_VALUES, u_loc); CHKERRQ(ierr);
 
     const PetscInt *eix, *eixp;
     ierr = DMDAGetElements(DA, &nelem, &npe, &eix); CHKERRQ(ierr);
@@ -142,10 +142,10 @@ PetscErrorCode set_strains()
         eixp = &eix[ie * NPE];
         for(n = 0; n < NPE; ++n) {
             for(d = 0; d < DIM; ++d) {
-                ix[n * DIM + d] = g_idx[eixp[n] * DIM + d];
+                ix[n * DIM + d] = eixp[n] * DIM + d;
             }
         }
-        VecGetValues(u, NPE * DIM, ix, u_e);
+        VecGetValues(u_loc, NPE * DIM, ix, u_e);
 
         for(gp = 0; gp < NGP; ++gp) {
 
@@ -162,6 +162,7 @@ PetscErrorCode set_strains()
         }
     }
 
+    ierr = VecDestroy(&u_loc); CHKERRQ(ierr);
     return ierr;
 }
 

@@ -109,6 +109,13 @@ int main(int argc,char **argv)
 
     ierr = VecView(x, PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
 
+    Vec x_loc;
+    ierr = DMCreateLocalVector(da, &x_loc); CHKERRQ(ierr);
+    DMGlobalToLocalBegin(da, x, INSERT_VALUES, x_loc);
+    DMGlobalToLocalEnd(da, x, INSERT_VALUES, x_loc);
+    ierr = VecView(x_loc, PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+
+
     PetscPrintf(PETSC_COMM_WORLD, "\nLocal Numeration\n");
     ierr = DMDAGetElements(da, &nelem, &npe, &eix); CHKERRQ(ierr);
     PetscSynchronizedPrintf(PETSC_COMM_WORLD, "\nrank:%d\n", rank);
