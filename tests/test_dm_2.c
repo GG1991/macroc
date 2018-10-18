@@ -48,6 +48,8 @@ int main(int argc,char **argv)
     int nbcs;
 
     int rank;
+    const PetscInt *eix, *eixp;
+    PetscInt ie, npe, nelem;
 
     ISLocalToGlobalMapping ltogm;
     ierr = PetscInitialize(&argc, &argv, NULL, NULL);
@@ -64,12 +66,16 @@ int main(int argc,char **argv)
     ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
     ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
     ierr = DMDAGetGhostCorners(da, &si, &sj, 0, &nx, &ny, 0); CHKERRQ(ierr);
-    printf("rank %d\tsi:%d\tsj:%d\tnx:%d\tny:%d\n", rank, si, sj, nx, ny);
 
-    printf("rank:%d\tg_idx:\n", rank);
+    PetscSynchronizedPrintf(PETSC_COMM_WORLD,
+                            "rank:%d\tsi:%d\tsj:%d\tnx:%d\tny:%d\ng_idx:\n",
+                            rank, si, sj, nx, ny);
+
     for (i = 0; i < (nx * ny) * DOF; ++i){
-        printf("(%d,%d)\t", i, g_idx[i]);
+        PetscSynchronizedPrintf(PETSC_COMM_WORLD, "(%d,%d)\t", i, g_idx[i]);
     }
+    PetscSynchronizedPrintf(PETSC_COMM_WORLD, "\n\n");
+    PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
 
     bc_global_ids = malloc((2 * nx + 2 * ny) * DOF * sizeof(int));
     bc_values = malloc((2 * nx + 2 * ny) * DOF * sizeof(double));
@@ -90,14 +96,11 @@ int main(int argc,char **argv)
             bc_values[j * DOF + d] = 1;
         }
     }
-    printf("\n");
 
     nbcs = 0;
     if (si == 0) {
         nbcs = ny * DOF;
     }
-
-    ISLocalToGlobalMappingRestoreIndices(ltogm,&g_idx);
 
     ierr = VecSetValues(x, nbcs, bc_global_ids, bc_values,
                         INSERT_VALUES); CHKERRQ(ierr);
@@ -105,6 +108,31 @@ int main(int argc,char **argv)
     ierr = VecAssemblyEnd(x); CHKERRQ(ierr);
 
     ierr = VecView(x, PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+
+    PetscPrintf(PETSC_COMM_WORLD, "\nLocal Numeration\n");
+    ierr = DMDAGetElements(da, &nelem, &npe, &eix); CHKERRQ(ierr);
+    PetscSynchronizedPrintf(PETSC_COMM_WORLD, "\nrank:%d\n", rank);
+    for (ie = 0; ie < nelem; ++ie) {
+        PetscSynchronizedPrintf(PETSC_COMM_WORLD, "e\t%d\t:\t%d\t%d\t%d\t%d\n",
+                                ie, eix[npe * ie], eix[npe *ie + 1],
+                                eix[npe * ie + 2], eix[npe * ie + 3]);
+    }
+    PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
+
+    PetscPrintf(PETSC_COMM_WORLD, "\nGlobal Numeration\n");
+    ierr = DMDAGetElements(da, &nelem, &npe, &eix); CHKERRQ(ierr);
+    PetscSynchronizedPrintf(PETSC_COMM_WORLD, "\nrank:%d\n", rank);
+    for (ie = 0; ie < nelem; ++ie) {
+        PetscSynchronizedPrintf(PETSC_COMM_WORLD, "e\t%d\t:\t%d\t%d\t%d\t%d\n",
+                                ie,
+                                g_idx[eix[npe * ie] * DOF],
+                                g_idx[eix[npe *ie + 1] * DOF],
+                                g_idx[eix[npe * ie + 2] * DOF],
+                                g_idx[eix[npe * ie + 3] * DOF]);
+    }
+    PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
+
+    ISLocalToGlobalMappingRestoreIndices(ltogm,&g_idx);
 
     ierr = VecDestroy(&x); CHKERRQ(ierr);
     ierr = DMDestroy(&da); CHKERRQ(ierr);

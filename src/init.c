@@ -82,7 +82,7 @@ PetscErrorCode init()
                             "rank:%d\tne:%d\tnex:%d\tney:%d\tnez:%d\n",
                             rank, (int) (nex * ney * nez), (int) nex,
                             (int) ney, (int) nez);
-    PetscSynchronizedFlush(PETSC_COMM_WORLD,PETSC_STDOUT);
+    PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
 
     // Initializes <micro> declared in <micropp_c_wrapper.h>
     int ngpl = nex * ney * nez * NGP;

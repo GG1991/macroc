@@ -90,7 +90,6 @@ PetscErrorCode set_bc(int time_step, Vec u)
             for (d = 0; d < DIM; ++d) {
 
                 PetscInt local_id = i + j * nx + k * nx * ny;
-
                 PetscInt index = (k * ny + j) * DIM + d;
 
                 bc_global_ids[index] = g_idx[local_id * DIM + d];
