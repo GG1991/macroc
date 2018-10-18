@@ -52,6 +52,7 @@ int main(int argc,char **args)
             //ierr = assembly_jac(A);
             //ierr = solve_Ax();
             /* u = u + du */
+            ierr = VecAXPY(u, 1., du); CHKERRQ(ierr);
 
             newton_it ++;
         }

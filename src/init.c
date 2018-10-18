@@ -56,6 +56,10 @@ PetscErrorCode init()
     ierr = DMCreateGlobalVector(DA, &b); CHKERRQ(ierr);
     ierr = DMCreateGlobalVector(DA, &du); CHKERRQ(ierr);
 
+    ierr = VecZeroEntries(u); CHKERRQ(ierr);
+    ierr = VecZeroEntries(b); CHKERRQ(ierr);
+    ierr = VecZeroEntries(du); CHKERRQ(ierr);
+
     dx = 1.;
     dy = 1.;
     dz = 1.;

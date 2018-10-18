@@ -258,7 +258,7 @@ PetscErrorCode solve_Ax(Mat A, Vec b, Vec x)
     ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
     ierr = KSPSetUp(ksp); CHKERRQ(ierr);
 
-    ierr = KSPSolve(ksp, b, x); CHKERRQ(ierr);
+    //ierr = KSPSolve(ksp, b, x); CHKERRQ(ierr);
 
     ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
 
