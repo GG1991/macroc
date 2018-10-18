@@ -22,11 +22,10 @@
 #include "macroc.h"
 
 
-int set_bc(int time_step, Vec u)
+PetscErrorCode set_bc(int time_step, Vec u)
 {
-    int ierr;
+    PetscErrorCode ierr;
     PetscInt *bc_global_ids;
-    PetscReal UY;
     PetscReal time = time_step * dt;
     PetscReal *bc_vals;
     const PetscInt *g_idx;
@@ -38,10 +37,11 @@ int set_bc(int time_step, Vec u)
 
     ISLocalToGlobalMapping ltogm;
 
+	double UY;
     if(time < final_time / 2.){
-        UY = U_max * (time / final_time);
+        UY = U_MAX * (time / final_time);
     } else {
-        UY = U_max;
+        UY = U_MAX;
     }
     UY = 5.;
 
@@ -120,10 +120,11 @@ int set_bc(int time_step, Vec u)
 }
 
 
-int set_strains()
+PetscErrorCode set_strains()
 {
-    int ie, gp;
-    int ierr = 0;
+    PetscErrorCode ierr;
+    PetscInt ie, nelem;
+    int gp;
     int gpi_;
     double strain[6];
 
@@ -143,11 +144,11 @@ int set_strains()
 
 int assembly_jac(Mat A)
 {
-    int ierr = 0;
-    int i, j, k, l;
-    int ie, nelem;
-    int n, d, gp, npe;
-    int ix[NPE * DIM];
+    PetscErrorCode ierr;
+    PetscInt i, j, k, l;
+    PetscInt ie, nelem;
+    PetscInt n, d, gp, npe;
+    PetscInt ix[NPE * DIM];
     double ctan[36];
     double Ae[NPE * DIM * NPE * DIM];
     double B[6][NPE * DIM];
@@ -194,13 +195,13 @@ int assembly_jac(Mat A)
 }
 
 
-int assembly_res(Vec b)
+PetscErrorCode assembly_res(Vec b)
 {
-    int ierr = 0;
-    int ie, nelem;
-    int i, j;
-    int n, d, gp, npe;
-    int ix[NPE * DIM];
+    PetscErrorCode ierr;
+    PetscInt ie, nelem;
+    PetscInt i, j;
+    PetscInt n, d, gp, npe;
+    PetscInt ix[NPE * DIM];
     double stress[6];
     double be[NPE * DIM * NPE * DIM];
     double B[6][NPE * DIM];
@@ -243,9 +244,9 @@ int assembly_res(Vec b)
 }
 
 
-int solve_Ax(Mat A, Vec b, Vec x)
+PetscErrorCode solve_Ax(Mat A, Vec b, Vec x)
 {
-    int ierr;
+    PetscErrorCode ierr;
     KSP ksp;
     PC pc;
 

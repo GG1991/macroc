@@ -22,10 +22,16 @@
 #include "macroc.h"
 
 
-int init()
+PetscErrorCode init()
 {
-    int ierr;
+    PetscErrorCode ierr;
     char mess[64];
+
+    int rank, nproc;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+    sprintf(mess, "Problem size %d\n", nproc);
+    print0(mess);
 
     final_time = FINAL_TIME;
     ts = TIME_STEPS;
@@ -60,6 +66,7 @@ int init()
     micropp_C_material_set(0, 1.0e7, 0.25, 1.0e4, 1.0e7, 0);
     micropp_C_material_set(1, 1.0e7, 0.25, 1.0e4, 1.0e7, 1);
     print0("Material Values:\n");
+
     if(!rank) {
         micropp_C_material_print(0);
         micropp_C_material_print(1);
@@ -81,9 +88,9 @@ int init()
 }
 
 
-int finish()
+PetscErrorCode finish()
 {
-    int ierr;
+    PetscErrorCode ierr;
     ierr = MatDestroy(&A); CHKERRQ(ierr);
     ierr = PetscFinalize();
     return ierr;

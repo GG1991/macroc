@@ -24,21 +24,18 @@
 
 int main(int argc,char **args)
 {
-    int ierr;
-    int time_s, newton_it;
-    double norm;
+    PetscErrorCode ierr;
     char mess[64];
 
     ierr = PetscInitialize(&argc,&args,(char*)0,help); if(ierr) return ierr;
 
+    int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &nproc);
 
     ierr = init();
 
-    sprintf(mess, "Problem size %d\n", nproc);
-    print0(mess);
-
+    double norm;
+    int time_s, newton_it;
     for(time_s = 0; time_s < ts; ++time_s) {
 
         ierr = set_bc(time_s, u);

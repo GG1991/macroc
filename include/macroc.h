@@ -40,9 +40,11 @@
 #define FINAL_TIME 10.0
 #define TIME_STEPS 1
 #define DT         0.0001
-#define NX         2
-#define NY         2
-#define NZ         2
+#define NX         100
+#define NY         100
+#define NZ         100
+
+#define U_MAX      0.8
 
 #define print0(mess) { if(!rank) printf("%s", mess); }
 #define gpi(ex, ey, ez, gp) ( (ez * nexl * neyl + ey * nexl + ex) * NGP + gp)
@@ -59,29 +61,23 @@ static double xg[8][3] = {
     { +CONSTXG, +CONSTXG, +CONSTXG },
     { -CONSTXG, +CONSTXG, +CONSTXG } };
 
-int rank, nproc, nproc_x, nproc_y, nproc_z;
-
-int nelem, nelem_local;
-int ngpl;
-
 double lx, ly, lz, dx, dy, dz;
 double wg;
 
 PetscInt ts;
 PetscReal dt, final_time;
-double UY, U_max;
 
 DM DA;
 Mat A;
 Vec u, du, b;
 
-int init();
-int finish();
-int set_bc(int time_step, Vec u);
-int set_strains();
-int assembly_jac(Mat A);
-int assembly_res(Vec b);
-int solve_Ax();
+PetscErrorCode init();
+PetscErrorCode finish();
+PetscErrorCode set_bc(int time_step, Vec u);
+PetscErrorCode set_strains();
+PetscErrorCode assembly_jac(Mat A);
+PetscErrorCode assembly_res(Vec b);
+PetscErrorCode solve_Ax();
 
 void calc_B(int gp, double B[6][NPE * DIM]);
 
