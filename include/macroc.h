@@ -39,15 +39,12 @@
 
 #define FINAL_TIME 10.0
 #define TIME_STEPS 1
-#define DT         0.0001
+#define DT         0.000001
 #define NX         100
 #define NY         100
 #define NZ         100
 
 #define U_MAX      0.8
-
-#define print0(mess) { if(!rank) printf("%s", mess); }
-#define gpi(ex, ey, ez, gp) ( (ez * nexl * neyl + ey * nexl + ex) * NGP + gp)
 
 static char help[] = "FE code to solve macroscopic problems with PETSc.\n";
 

@@ -30,8 +30,7 @@ PetscErrorCode init()
     int rank, nproc;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &nproc);
-    sprintf(mess, "Problem size %d\n", nproc);
-    print0(mess);
+    PetscPrintf(PETSC_COMM_WORLD, "Number of Processors : %d\n", nproc);
 
     final_time = FINAL_TIME;
     ts = TIME_STEPS;
@@ -69,7 +68,7 @@ PetscErrorCode init()
     micropp_C_material_create();
     micropp_C_material_set(0, 1.0e7, 0.25, 1.0e4, 1.0e7, 0);
     micropp_C_material_set(1, 1.0e7, 0.25, 1.0e4, 1.0e7, 1);
-    print0("Material Values:\n");
+    PetscPrintf(PETSC_COMM_WORLD, "Material Values : \n");
 
     if(!rank) {
         micropp_C_material_print(0);

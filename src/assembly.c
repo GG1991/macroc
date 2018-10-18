@@ -43,7 +43,6 @@ PetscErrorCode set_bc(int time_step, Vec u)
     } else {
         UY = U_MAX;
     }
-    UY = 5.;
 
     ierr = DMDAGetInfo(DA,0,&M,&N,&P,0,0,0,0,0,0,0,0,0); CHKERRQ(ierr);
     ierr = DMGetLocalToGlobalMapping(DA, &ltogm); CHKERRQ(ierr);
@@ -180,11 +179,6 @@ int assembly_jac(Mat A)
 
     ierr = MatZeroEntries(A); CHKERRQ(ierr);
 
-    const PetscInt *g_idx;
-    ISLocalToGlobalMapping ltogm;
-    ierr = DMGetLocalToGlobalMapping(DA, &ltogm); CHKERRQ(ierr);
-    ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
-
     const PetscInt *eix, *eixp;
     ierr = DMDAGetElements(DA, &nelem, &npe, &eix); CHKERRQ(ierr);
 
@@ -212,7 +206,7 @@ int assembly_jac(Mat A)
         eixp = &eix[ie * NPE];
         for(n = 0; n < NPE; ++n) {
             for(d = 0; d < DIM; ++d) {
-                ix[n * DIM + d] = g_idx[eixp[n] * DIM + d];
+                ix[n * DIM + d] = eixp[n] * DIM + d;
             }
         }
 
@@ -239,11 +233,6 @@ PetscErrorCode assembly_res(Vec b)
 
     ierr = VecZeroEntries(b);
 
-    const PetscInt *g_idx;
-    ISLocalToGlobalMapping ltogm;
-    ierr = DMGetLocalToGlobalMapping(DA, &ltogm); CHKERRQ(ierr);
-    ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
-
     const PetscInt *eix, *eixp;
     ierr = DMDAGetElements(DA, &nelem, &npe, &eix); CHKERRQ(ierr);
 
@@ -267,7 +256,7 @@ PetscErrorCode assembly_res(Vec b)
         eixp = &eix[ie * NPE];
         for(n = 0; n < NPE; ++n) {
             for(d = 0; d < DIM; ++d) {
-                ix[n * DIM + d] = g_idx[eixp[n] * DIM + d];
+                ix[n * DIM + d] = eixp[n] * DIM + d;
             }
         }
 
@@ -275,6 +264,8 @@ PetscErrorCode assembly_res(Vec b)
     }
     VecAssemblyBegin(b); CHKERRQ(ierr);
     VecAssemblyEnd(b); CHKERRQ(ierr);
+
+    ierr = VecScale(b, -1.); CHKERRQ(ierr);
 
     return ierr;
 }
