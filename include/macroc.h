@@ -33,7 +33,7 @@
 #define NPE        8
 #define NVOI       6
 #define DIM        3
-#define NEWTON_TOL 1.0e-1
+#define NEWTON_TOL -1.0e-1
 #define NEWTON_ITS 1
 #define CONSTXG    0.577350269189626
 
@@ -77,7 +77,7 @@ PetscErrorCode set_bc(int time_step, Vec u);
 PetscErrorCode set_strains();
 PetscErrorCode assembly_jac(Mat A);
 PetscErrorCode assembly_res(Vec b);
-PetscErrorCode solve_Ax();
+PetscErrorCode solve_Ax(Mat A, Vec b, Vec x);
 
 void calc_B(int gp, double B[6][NPE * DIM]);
 

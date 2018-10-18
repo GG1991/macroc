@@ -185,8 +185,7 @@ int assembly_jac(Mat A)
         }
 
         ierr = MatSetValuesLocal(A, NPE * DIM, ix, NPE * DIM, ix, Ae,
-                                 ADD_VALUES);
-        CHKERRQ(ierr);
+                                 ADD_VALUES); CHKERRQ(ierr);
     }
     ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
     ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
@@ -234,8 +233,7 @@ PetscErrorCode assembly_res(Vec b)
             }
         }
 
-        ierr = VecSetValuesLocal(b, NPE * DIM, ix, be, ADD_VALUES);
-        CHKERRQ(ierr);
+        ierr = VecSetValuesLocal(b, NPE * DIM, ix, be, ADD_VALUES); CHKERRQ(ierr);
     }
     VecAssemblyBegin(b); CHKERRQ(ierr);
     VecAssemblyEnd(b); CHKERRQ(ierr);

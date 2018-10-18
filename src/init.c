@@ -96,6 +96,9 @@ PetscErrorCode finish()
 {
     PetscErrorCode ierr;
     ierr = MatDestroy(&A); CHKERRQ(ierr);
+    ierr = VecDestroy(&u); CHKERRQ(ierr);
+    ierr = VecDestroy(&b); CHKERRQ(ierr);
+    ierr = VecDestroy(&du); CHKERRQ(ierr);
     ierr = PetscFinalize();
     return ierr;
 }

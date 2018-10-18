@@ -25,9 +25,8 @@
 int main(int argc,char **args)
 {
     PetscErrorCode ierr;
-    char mess[64];
 
-    ierr = PetscInitialize(&argc,&args,(char*)0,help); if(ierr) return ierr;
+    ierr = PetscInitialize(&argc, &args, (char*)0, help); if(ierr) return ierr;
 
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -46,12 +45,14 @@ int main(int argc,char **args)
             //ierr = set_strains();
             //micropp_C_homogenize();
 
-            //ierr = assembly_res(b);
-            /* norm = |b| */
+            ierr = assembly_res(b);
+            ierr = VecNorm(b, NORM_2, &norm); CHKERRQ(ierr);
+            PetscPrintf(PETSC_COMM_WORLD, "|RES| = %e\n", norm);
+            if (norm < NEWTON_TOL) break;
 
-            //ierr = assembly_jac(A);
-            //ierr = solve_Ax();
-            /* u = u + du */
+            ierr = assembly_jac(A);
+            ierr = solve_Ax(A, b, du);
+
             ierr = VecAXPY(u, 1., du); CHKERRQ(ierr);
 
             newton_it ++;
