@@ -191,11 +191,11 @@ int assembly_jac(Mat A)
             gpi = ie * NGP + gp;
             micropp_C_get_ctan3(gpi, ctan);
 
-            for (i = 0; i < NPE; ++i) {
-                for (j = 0; j < NPE; ++j) {
+            for (i = 0; i < NPE * DIM; ++i) {
+                for (j = 0; j < NPE * DIM; ++j) {
                     for (k = 0; k < NVOI; ++k) {
                         for (l = 0; l < NVOI; ++l) {
-                            Ae[NPE * i + j] +=
+                            Ae[NPE * DIM * i + j] +=
                                 B[k][i] * ctan[k * NVOI + l] * B[l][j] * wg;
                         }
                     }
@@ -273,6 +273,8 @@ int assembly_jac(Mat A)
     ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
 
     free(rows);
+
+    //MatView(A, PETSC_VIEWER_DRAW_WORLD);
 
     return ierr;
 }
@@ -402,7 +404,7 @@ PetscErrorCode solve_Ax(Mat A, Vec b, Vec x)
     ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
     ierr = KSPSetUp(ksp); CHKERRQ(ierr);
 
-    //ierr = KSPSolve(ksp, b, x); CHKERRQ(ierr);
+    ierr = KSPSolve(ksp, b, x); CHKERRQ(ierr);
 
     ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
 
