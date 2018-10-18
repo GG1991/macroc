@@ -216,6 +216,64 @@ int assembly_jac(Mat A)
     ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
     ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
 
+    /* Boundary Conditions */
+    PetscInt si, sj, sk;
+    PetscInt nx, ny, nz;
+    PetscInt M, N, P;
+    PetscInt nbcs = 0;
+    const PetscInt *g_idx;
+
+    ISLocalToGlobalMapping ltogm;
+    ierr = DMGetLocalToGlobalMapping(DA, &ltogm); CHKERRQ(ierr);
+    ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
+    ierr = DMDAGetInfo(DA,0,&M,&N,&P,0,0,0,0,0,0,0,0,0); CHKERRQ(ierr);
+    ierr = DMDAGetGhostCorners(DA, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
+
+    PetscInt *rows = malloc(ny * nz * DIM * sizeof(PetscInt));
+
+    i = 0;
+    for (k = 0; k < nz; ++k) {
+        for (j = 0; j < ny; ++j) {
+            for (d = 0; d < DIM; ++d) {
+
+                PetscInt local_id = i + j * nx + k * nx * ny;
+                PetscInt index = (k * ny + j) * DIM + d;
+                rows[index] = g_idx[local_id * DIM + d];
+            }
+        }
+    }
+
+    nbcs = 0;
+    if (si == 0) {
+        nbcs = ny * nz * DIM;
+    }
+
+    MatZeroRowsColumns(A, nbcs, rows, 1., NULL, NULL);
+
+    i = nx - 1;
+    for (k = 0; k < nz; ++k) {
+        for (j = 0; j < ny; ++j) {
+            for (d = 0; d < DIM; ++d) {
+
+                PetscInt local_id = i + j * nx + k * nx * ny;
+                PetscInt index = (k * ny + j) * DIM + d;
+                rows[index] = g_idx[local_id * DIM + d];
+            }
+        }
+    }
+
+    nbcs = 0;
+    if (si + nx == M) {
+        nbcs = ny * nz * DIM;
+    }
+
+    MatZeroRowsColumns(A, nbcs, rows, 1., NULL, NULL);
+
+    ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+    ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+
+    free(rows);
+
     return ierr;
 }
 
@@ -224,7 +282,7 @@ PetscErrorCode assembly_res(Vec b)
 {
     PetscErrorCode ierr;
     PetscInt ie, nelem;
-    PetscInt i, j;
+    PetscInt i, j, k;
     PetscInt n, d, gp, gpi, npe;
     PetscInt ix[NPE * DIM];
     double stress[NVOI];
@@ -264,6 +322,65 @@ PetscErrorCode assembly_res(Vec b)
     }
     VecAssemblyBegin(b); CHKERRQ(ierr);
     VecAssemblyEnd(b); CHKERRQ(ierr);
+
+    /* Boundary Conditions */
+    PetscInt si, sj, sk;
+    PetscInt nx, ny, nz;
+    PetscInt M, N, P;
+    PetscInt nbcs = 0;
+    const PetscInt *g_idx;
+
+    ISLocalToGlobalMapping ltogm;
+    ierr = DMGetLocalToGlobalMapping(DA, &ltogm); CHKERRQ(ierr);
+    ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
+    ierr = DMDAGetInfo(DA,0,&M,&N,&P,0,0,0,0,0,0,0,0,0); CHKERRQ(ierr);
+    ierr = DMDAGetGhostCorners(DA, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
+
+    PetscInt *rows = malloc(ny * nz * DIM * sizeof(PetscInt));
+    double *zeros = calloc(ny * nz * DIM, sizeof(double));
+
+    i = 0;
+    for (k = 0; k < nz; ++k) {
+        for (j = 0; j < ny; ++j) {
+            for (d = 0; d < DIM; ++d) {
+
+                PetscInt local_id = i + j * nx + k * nx * ny;
+                PetscInt index = (k * ny + j) * DIM + d;
+                rows[index] = g_idx[local_id * DIM + d];
+            }
+        }
+    }
+
+    nbcs = 0;
+    if (si == 0) {
+        nbcs = ny * nz * DIM;
+    }
+
+    ierr = VecSetValues(b, nbcs, rows, zeros, INSERT_VALUES); CHKERRQ(ierr);
+
+    i = nx - 1;
+    for (k = 0; k < nz; ++k) {
+        for (j = 0; j < ny; ++j) {
+            for (d = 0; d < DIM; ++d) {
+
+                PetscInt local_id = i + j * nx + k * nx * ny;
+                PetscInt index = (k * ny + j) * DIM + d;
+                rows[index] = g_idx[local_id * DIM + d];
+            }
+        }
+    }
+
+    nbcs = 0;
+    if (si + nx == M) {
+        nbcs = ny * nz * DIM;
+    }
+
+    ierr = VecSetValues(b, nbcs, rows, zeros, INSERT_VALUES); CHKERRQ(ierr);
+
+    ierr = VecAssemblyBegin(b); CHKERRQ(ierr);
+    ierr = VecAssemblyEnd(b); CHKERRQ(ierr);
+
+    free(rows);
 
     ierr = VecScale(b, -1.); CHKERRQ(ierr);
 

@@ -65,7 +65,6 @@ PetscErrorCode init()
     wg = dx * dy * dz / NPE;
 
     // Initializes <materials> declared in <micropp_c_wrapper.h>
-    micropp_C_material_create();
     micropp_C_material_set(0, 1.0e7, 0.25, 1.0e4, 1.0e7, 0);
     micropp_C_material_set(1, 1.0e7, 0.25, 1.0e4, 1.0e7, 1);
     PetscPrintf(PETSC_COMM_WORLD, "Material Values : \n");
@@ -89,6 +88,10 @@ PetscErrorCode init()
     int type = 1;
     double params[4] = { 1., 1., 1., .5 };
     micropp_C_create3(ngpl, size, type, params);
+
+    if(!rank) {
+        micropp_C_print_info();
+    }
 
     return ierr;
 }
