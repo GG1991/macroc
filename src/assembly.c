@@ -123,18 +123,28 @@ PetscErrorCode set_bc(int time_step, Vec u)
 PetscErrorCode set_strains()
 {
     PetscErrorCode ierr;
-    PetscInt ie, nelem;
-    int gp;
-    int gpi_;
+    PetscInt ie, nelem, npe, gpi;
+    PetscInt ix[NPE * DIM];
+    int gp, n, d;
     double strain[6];
+    double u_e[NPE * DIM];
+    const PetscInt *eix, *eixp;
 
+    ierr = DMDAGetElements(DA, &nelem, &npe, &eix); CHKERRQ(ierr);
     for(ie = 0; ie < nelem; ++ie) {
+
+        for(n = 0; n < NPE; ++n) {
+            for(d = 0; d < DIM; ++d) {
+                ix[n * DIM + d] = 1;
+            }
+        }
+        //VecGetValues(u, NPE * DIM, ix, u_e);
 
         for(gp = 0; gp < NGP; ++gp) {
 
             strain[0] = 0.0;
-            //gpi_ = gpi(ex, ey, ez, gp);
-            //micropp_C_set_strain3(gpi_, strain);
+            gpi = ie * NGP + gp;
+            micropp_C_set_strain3(gpi, strain);
         }
     }
 
@@ -145,10 +155,10 @@ PetscErrorCode set_strains()
 int assembly_jac(Mat A)
 {
     PetscErrorCode ierr;
-    PetscInt i, j, k, l;
     PetscInt ie, nelem;
-    PetscInt n, d, gp, npe;
+    PetscInt n, d, gp, gpi, npe;
     PetscInt ix[NPE * DIM];
+    int i, j, k, l;
     double ctan[36];
     double Ae[NPE * DIM * NPE * DIM];
     double B[6][NPE * DIM];
@@ -163,7 +173,8 @@ int assembly_jac(Mat A)
         for(gp = 0; gp < NGP; ++gp) {
 
             calc_B(gp, B);
-            micropp_C_get_ctan3(gp, ctan);
+            gpi = ie * NGP + gp;
+            micropp_C_get_ctan3(gpi, ctan);
 
             for (i = 0; i < NPE; ++i) {
                 for (j = 0; j < NPE; ++j) {
@@ -199,7 +210,7 @@ PetscErrorCode assembly_res(Vec b)
     PetscErrorCode ierr;
     PetscInt ie, nelem;
     PetscInt i, j;
-    PetscInt n, d, gp, npe;
+    PetscInt n, d, gp, gpi, npe;
     PetscInt ix[NPE * DIM];
     double stress[6];
     double be[NPE * DIM * NPE * DIM];
@@ -216,7 +227,8 @@ PetscErrorCode assembly_res(Vec b)
         for(gp = 0; gp < NGP; ++gp) {
 
             calc_B(gp, B);
-            micropp_C_get_stress3(gp, stress);
+            gpi = ie * NGP + gp;
+            micropp_C_get_stress3(gpi, stress);
 
             for (i = 0; i < NPE * DIM; ++i) {
                 for (j = 0; j < NVOI; ++j) {
@@ -252,7 +264,7 @@ PetscErrorCode solve_Ax(Mat A, Vec b, Vec x)
     ierr = KSPSetOperators(ksp, A, A); CHKERRQ(ierr);
     ierr = KSPSetType(ksp, KSPCG); CHKERRQ(ierr);
     ierr = KSPGetPC(ksp, &pc); CHKERRQ(ierr);
-    ierr = PCSetType(pc, PCBDDC); CHKERRQ(ierr);
+    ierr = PCSetType(pc, PCJACOBI); CHKERRQ(ierr);
     ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
     ierr = KSPSetUp(ksp); CHKERRQ(ierr);
 

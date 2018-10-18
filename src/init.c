@@ -78,8 +78,11 @@ PetscErrorCode init()
 
     PetscInt nex, ney, nez;
     ierr = DMDAGetElementsSizes(DA, &nex, &ney, &nez); CHKERRQ(ierr);
-    printf("rank%d\tne:%d\tnex:%d\tney:%d\tnez:%d\n",
-           rank, (int) (nex * ney * nez), (int) nex, (int) ney, (int) nez);
+    PetscSynchronizedPrintf(PETSC_COMM_WORLD,
+                            "rank:%d\tne:%d\tnex:%d\tney:%d\tnez:%d\n",
+                            rank, (int) (nex * ney * nez), (int) nex,
+                            (int) ney, (int) nez);
+    PetscSynchronizedFlush(PETSC_COMM_WORLD,PETSC_STDOUT);
 
     // Initializes <micro> declared in <micropp_c_wrapper.h>
     int ngpl = nex * ney * nez * NGP;
