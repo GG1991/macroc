@@ -195,8 +195,8 @@ int assembly_jac(Mat A)
                 for (j = 0; j < NPE; ++j) {
                     for (k = 0; k < NVOI; ++k) {
                         for (l = 0; l < NVOI; ++l) {
-                            Ae[NPE * i + j] += B[k][i] * ctan[k * NVOI + l] \
-                                               * B[l][j] * wg;
+                            Ae[NPE * i + j] +=
+                                B[k][i] * ctan[k * NVOI + l] * B[l][j] * wg;
                         }
                     }
                 }

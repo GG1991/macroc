@@ -37,7 +37,16 @@ else()
 endif()
 
 
-SET(C_COMPILE_FLAGS "-Wformat")
+SET(C_COMPILE_FLAGS "-Wno-format -Wno-incompatible-pointer-types")
+
+if (TRACE)
+	message("MicroC will be compiled for tracing with HPCToolkit.")
+	SET(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -g")
+	SET(CMAKE_BUILD_TYPE "Release")
+endif()
+message("C_COMPILE_FLAGS : " ${C_COMPILE_FLAGS})
+message("CMAKE_BUILD_TYPE : " ${CMAKE_BUILD_TYPE})
+
 SET(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} ${C_COMPILE_FLAGS}")
 
 # Include Directories (for all targets)
