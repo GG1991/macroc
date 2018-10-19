@@ -393,8 +393,14 @@ PetscErrorCode assembly_res(Vec b)
 PetscErrorCode solve_Ax(KSP ksp, Vec b, Vec x)
 {
     PetscErrorCode ierr;
+    PetscInt its;
+    PetscReal rnorm;
 
     ierr = KSPSolve(ksp, b, x); CHKERRQ(ierr);
+    ierr = KSPGetIterationNumber(ksp, &its);
+    ierr = KSPGetResidualNorm(ksp, &rnorm);
+    PetscPrintf(PETSC_COMM_WORLD,
+                "KSP : |Ax - b|/|Ax| = %e\tIts = %d\n", rnorm, its);
 
     return ierr;
 }

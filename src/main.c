@@ -40,13 +40,13 @@ int main(int argc,char **args)
     int time_s, newton_it;
     for(time_s = 0; time_s < ts; ++time_s) {
 
-        PetscPrintf(PETSC_COMM_WORLD, "\nTime Step = %d\n", time_s);
+        PetscPrintf(PETSC_COMM_WORLD, "\n\nTime Step = %d\n", time_s);
         ierr = set_bc(time_s, u);
 
         newton_it = 0;
         while(newton_it < NEWTON_ITS) {
 
-            PetscPrintf(PETSC_COMM_WORLD, "Newton Iteration = %d\n", newton_it);
+            PetscPrintf(PETSC_COMM_WORLD, "\nNewton Iteration = %d\n", newton_it);
             PetscPrintf(PETSC_COMM_WORLD, "Homogenizing MicroPP\n");
             ierr = set_strains();
             micropp_C_homogenize();

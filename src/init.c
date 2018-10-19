@@ -74,6 +74,10 @@ PetscErrorCode init()
     dz = lz / (P - 1);
     wg = dx * dy * dz / NPE;
 
+    KSPType ksptype;
+    PetscReal rtol, abstol, dtol;
+    PetscInt maxits;
+
     ierr = KSPCreate(PETSC_COMM_WORLD, &ksp); CHKERRQ(ierr);
     ierr = KSPSetOperators(ksp, A, A); CHKERRQ(ierr);
     ierr = KSPSetType(ksp, KSPCG); CHKERRQ(ierr);
@@ -81,6 +85,13 @@ PetscErrorCode init()
     ierr = PCSetType(pc, PCJACOBI); CHKERRQ(ierr);
     ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
     ierr = KSPSetUp(ksp); CHKERRQ(ierr);
+
+    ierr = KSPGetTolerances(ksp, &rtol, &abstol, &dtol, &maxits);
+    ierr = KSPGetType(ksp, &ksptype);
+    PetscPrintf(PETSC_COMM_WORLD,
+                "KSP Info: type = %s\trtol = %e\t\
+                abstol = %e\tdtol = %e\tmaxits = %d\n",
+                ksptype, rtol, abstol, dtol, maxits);
 
     // Initializes <materials> declared in <micropp_c_wrapper.h>
     micropp_C_material_set(0, 1.0e7, 0.25, 1.0e4, 1.0e7, 0);
