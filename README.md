@@ -45,13 +45,18 @@ Execution
 
 The mesh size and the processors in each direction are given by command line as:
 
-```bash
--da_grid_x <nx> - number of grid points in x direction
--da_grid_y <ny> - number of grid points in y direction
--da_grid_z <nz> - number of grid points in z direction
--da_processors_x <MX> number of processors in x direction
--da_processors_y <MY> number of processors in y direction
--da_processors_z <MZ> number of processors in z direction
+```
+-da_grid_x <int> - number of grid points in x direction
+-da_grid_y <int> - number of grid points in y direction
+-da_grid_z <int> - number of grid points in z direction
+-da_processors_x <int> number of processors in x direction
+-da_processors_y <int> number of processors in y direction
+-da_processors_z <int> number of processors in z direction
+-ts <int> number of time steps
+-dt <double> time step
+-lx <double> length in x direction
+-ly <double> length in y direction
+-lz <double> length in z direction
 ```
 
 Examples

@@ -40,11 +40,11 @@ PetscErrorCode init()
     ly = LY;
     lz = LZ;
 
+    PetscOptionsGetInt(NULL, NULL, "-ts", &ts, NULL);
     PetscOptionsGetReal(NULL, NULL, "-dt", &dt, NULL);
     PetscOptionsGetReal(NULL, NULL, "-lx", &lx, NULL);
     PetscOptionsGetReal(NULL, NULL, "-ly", &ly, NULL);
     PetscOptionsGetReal(NULL, NULL, "-lz", &lz, NULL);
-    PetscOptionsGetInt(NULL, NULL, "-ts", &ts, NULL);
 
     DMBoundaryType bx = DM_BOUNDARY_NONE, by = DM_BOUNDARY_NONE,
                    bz = DM_BOUNDARY_NONE;
