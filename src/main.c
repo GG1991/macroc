@@ -59,12 +59,13 @@ int main(int argc,char **args)
             if (norm < NEWTON_TOL) break;
 
             ierr = assembly_jac(A);
-            ierr = solve_Ax(A, b, du);
+            ierr = solve_Ax(ksp, b, du);
 
             ierr = VecAXPY(u, 1., du); CHKERRQ(ierr);
 
             newton_it ++;
         }
+        micropp_C_update_vars();
     }
 
     t2 = MPI_Wtime();

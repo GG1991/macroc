@@ -43,6 +43,9 @@
 #define NX         100
 #define NY         100
 #define NZ         100
+#define LX         10.0
+#define LY         1.0
+#define LZ         1.0
 
 #define U_MAX      0.8
 
@@ -65,6 +68,8 @@ PetscInt ts;
 PetscReal dt, final_time;
 
 DM DA;
+PC pc;
+KSP ksp;
 Mat A;
 Vec u, du, b;
 
@@ -74,7 +79,7 @@ PetscErrorCode set_bc(int time_step, Vec u);
 PetscErrorCode set_strains();
 PetscErrorCode assembly_jac(Mat A);
 PetscErrorCode assembly_res(Vec b);
-PetscErrorCode solve_Ax(Mat A, Vec b, Vec x);
+PetscErrorCode solve_Ax(KSP ksp, Vec b, Vec x);
 
 void calc_B(int gp, double B[6][NPE * DIM]);
 

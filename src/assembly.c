@@ -390,23 +390,11 @@ PetscErrorCode assembly_res(Vec b)
 }
 
 
-PetscErrorCode solve_Ax(Mat A, Vec b, Vec x)
+PetscErrorCode solve_Ax(KSP ksp, Vec b, Vec x)
 {
     PetscErrorCode ierr;
-    KSP ksp;
-    PC pc;
-
-    ierr = KSPCreate(PETSC_COMM_WORLD, &ksp); CHKERRQ(ierr);
-    ierr = KSPSetOperators(ksp, A, A); CHKERRQ(ierr);
-    ierr = KSPSetType(ksp, KSPCG); CHKERRQ(ierr);
-    ierr = KSPGetPC(ksp, &pc); CHKERRQ(ierr);
-    ierr = PCSetType(pc, PCJACOBI); CHKERRQ(ierr);
-    ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
-    ierr = KSPSetUp(ksp); CHKERRQ(ierr);
 
     ierr = KSPSolve(ksp, b, x); CHKERRQ(ierr);
-
-    ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
 
     return ierr;
 }

@@ -36,7 +36,14 @@ PetscErrorCode init()
     ts = TIME_STEPS;
     dt = DT;
 
+    lx = LX;
+    ly = LY;
+    lz = LZ;
+
     PetscOptionsGetReal(NULL, NULL, "-dt", &dt, NULL);
+    PetscOptionsGetReal(NULL, NULL, "-lx", &lx, NULL);
+    PetscOptionsGetReal(NULL, NULL, "-ly", &ly, NULL);
+    PetscOptionsGetReal(NULL, NULL, "-lz", &lz, NULL);
     PetscOptionsGetInt(NULL, NULL, "-ts", &ts, NULL);
 
     DMBoundaryType bx = DM_BOUNDARY_NONE, by = DM_BOUNDARY_NONE,
@@ -45,8 +52,7 @@ PetscErrorCode init()
                         NX, NY, NZ,
                         PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,
                         DIM, 1, NULL, NULL, NULL, &DA);
-    ierr = DMDASetUniformCoordinates(DA, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
-    CHKERRQ(ierr);
+
     ierr = DMSetMatType(DA, MATAIJ); CHKERRQ(ierr);
     ierr = DMSetFromOptions(DA); CHKERRQ(ierr);
     ierr = DMSetUp(DA); CHKERRQ(ierr);
@@ -59,10 +65,22 @@ PetscErrorCode init()
     ierr = VecZeroEntries(b); CHKERRQ(ierr);
     ierr = VecZeroEntries(du); CHKERRQ(ierr);
 
-    dx = 1.;
-    dy = 1.;
-    dz = 1.;
+    PetscInt M, N, P;
+    ierr = DMDAGetInfo(DA, 0, &M, &N, &P, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0); CHKERRQ(ierr);
+
+    dx = lx / (M - 1);
+    dy = ly / (N - 1);
+    dz = lz / (P - 1);
     wg = dx * dy * dz / NPE;
+
+    ierr = KSPCreate(PETSC_COMM_WORLD, &ksp); CHKERRQ(ierr);
+    ierr = KSPSetOperators(ksp, A, A); CHKERRQ(ierr);
+    ierr = KSPSetType(ksp, KSPCG); CHKERRQ(ierr);
+    ierr = KSPGetPC(ksp, &pc); CHKERRQ(ierr);
+    ierr = PCSetType(pc, PCJACOBI); CHKERRQ(ierr);
+    ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
+    ierr = KSPSetUp(ksp); CHKERRQ(ierr);
 
     // Initializes <materials> declared in <micropp_c_wrapper.h>
     micropp_C_material_set(0, 1.0e7, 0.25, 1.0e4, 1.0e7, 0);
@@ -104,6 +122,7 @@ PetscErrorCode finish()
     ierr = VecDestroy(&u); CHKERRQ(ierr);
     ierr = VecDestroy(&b); CHKERRQ(ierr);
     ierr = VecDestroy(&du); CHKERRQ(ierr);
+    ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
     ierr = PetscFinalize();
     return ierr;
 }
