@@ -68,15 +68,15 @@ int main(int argc,char **argv)
     VecAssemblyBegin(global);
     VecAssemblyEnd(global);
 
-    int x0, y0, z0, dx, dy, dz;
+    PetscInt x0, y0, z0, dx, dy, dz;
     DMDAGetCorners(da,&x0,&y0,&z0,&dx,&dy,&dz);
-    int nel, npe;
+    PetscInt nel, npe;
     const PetscInt *e;
     DMDAGetElements(da,&nel,&npe,&e);
     //DMDAGetGhostCorners(da,&x0,&y0,&z0,&dx,&dy,&dz);
     printf("rank:%d x0:%d\ty0:%d\tz0:%d\tdx:%d\tdy:%d\tdz:%d\n",rank,x0,y0,z0,dx,dy,dz);
     printf("rank:%d nel:%d\tnpe:%d\n",rank,nel,npe);
-    int i, d;
+    PetscInt i, d;
     for(i = 0; i < nel; ++i){
         printf("e %d : %d %d %d %d\n",i,e[npe*i],e[npe*i+1],e[npe*i+2],e[npe*i+3]);
     }

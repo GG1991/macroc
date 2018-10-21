@@ -37,7 +37,7 @@ else()
 endif()
 
 
-SET(C_COMPILE_FLAGS "-Wno-format -Wno-incompatible-pointer-types")
+#SET(C_COMPILE_FLAGS "-Wno-format -Wno-incompatible-pointer-types")
 
 if (TRACE)
 	message("MicroC will be compiled for tracing with HPCToolkit.")
