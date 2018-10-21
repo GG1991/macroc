@@ -34,7 +34,7 @@
 #define NVOI       6
 #define DIM        3
 #define NEWTON_TOL 1.0e-1
-#define NEWTON_ITS 2
+#define NEWTON_ITS 1
 #define CONSTXG    0.577350269189626
 
 #define FINAL_TIME 10.0

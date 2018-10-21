@@ -29,11 +29,11 @@ PetscErrorCode set_bc(int time_step, Vec u)
     PetscReal time = time_step * dt;
     PetscReal *bc_vals;
     const PetscInt *g_idx;
-    int i, j, k, d;
+    PetscInt i, j, k, d;
     PetscInt si, sj, sk;
     PetscInt nx, ny, nz;
     PetscInt M, N, P;
-    int nbcs;
+    PetscInt nbcs;
 
     ISLocalToGlobalMapping ltogm;
 
@@ -44,7 +44,8 @@ PetscErrorCode set_bc(int time_step, Vec u)
         UY = U_MAX;
     }
 
-    ierr = DMDAGetInfo(DA,0,&M,&N,&P,0,0,0,0,0,0,0,0,0); CHKERRQ(ierr);
+    ierr = DMDAGetInfo(DA, 0, &M, &N, &P, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0); CHKERRQ(ierr);
     ierr = DMGetLocalToGlobalMapping(DA, &ltogm); CHKERRQ(ierr);
     ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
     ierr = DMDAGetGhostCorners(DA, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
@@ -123,7 +124,7 @@ PetscErrorCode set_strains()
     PetscErrorCode ierr;
     PetscInt ie, nelem, npe, gpi;
     PetscInt ix[NPE * DIM];
-    int i, j, gp, n, d;
+    PetscInt i, j, gp, n, d;
     double strain[NVOI];
     double u_e[NPE * DIM];
     double B[NVOI][NPE * DIM];
@@ -172,7 +173,7 @@ int assembly_jac(Mat A)
     PetscInt ie, nelem;
     PetscInt n, d, gp, gpi, npe;
     PetscInt ix[NPE * DIM];
-    int i, j, k, l;
+    PetscInt i, j, k, l;
     double ctan[NVOI * NVOI];
     double Ae[NPE * DIM * NPE * DIM];
     double B[NVOI][NPE * DIM];

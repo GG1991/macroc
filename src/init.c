@@ -95,7 +95,7 @@ PetscErrorCode init()
 
     // Initializes <materials> declared in <micropp_c_wrapper.h>
     micropp_C_material_set(0, 1.0e7, 0.25, 1.0e4, 1.0e7, 0);
-    micropp_C_material_set(1, 1.0e7, 0.25, 1.0e4, 1.0e7, 1);
+    micropp_C_material_set(1, 1.0e7, 0.25, 1.0e4, 1.0e7, 0);
     PetscPrintf(PETSC_COMM_WORLD, "Material Values : \n");
 
     if(!rank) {
