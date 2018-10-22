@@ -155,10 +155,14 @@ PetscErrorCode write_pvtu(const char file_prefix[])
     PetscFPrintf(PETSC_COMM_SELF, fp,
                  "<DataArray type=\"Float64\" Name=\"displ\" "
                  "NumberOfComponents=\"3\" format=\"ascii\" >\n");
+
+    PetscScalar *u_arr;
+    ierr = VecGetArray(u, &u_arr);
     for (n = 0; n < N; ++n) {
         PetscFPrintf(PETSC_COMM_SELF, fp, "%01.6e\t%01.6e\t%01.6e\n",
-                     0., 0., 0.);
+                     u_arr[n * DIM + 0], u_arr[n * DIM + 1], u_arr[n * DIM + 2]);
     }
+    VecRestoreArray(u, &u_arr);
     PetscFPrintf(PETSC_COMM_SELF, fp, "</DataArray>\n");
     PetscFPrintf(PETSC_COMM_SELF, fp, "</PointData>\n");
     PetscFPrintf(PETSC_COMM_SELF, fp, "<CellData>\n");

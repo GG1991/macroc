@@ -39,7 +39,7 @@
 
 #define FINAL_TIME 10.0
 #define TIME_STEPS 1
-#define DT         0.00001
+#define DT         0.001
 #define NX         100
 #define NY         100
 #define NZ         100
@@ -47,7 +47,7 @@
 #define LY         1.0
 #define LZ         1.0
 
-#define U_MAX      0.8
+#define U_MAX      -0.8
 
 static char help[] = "FE code to solve macroscopic problems with PETSc.\n";
 
