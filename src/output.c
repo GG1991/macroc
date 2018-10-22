@@ -22,91 +22,163 @@
 #include "macroc.h"
 
 
-PetscErrorCode write_vtk(const char file_prefix[])
+PetscErrorCode write_pvtu(const char file_prefix[])
 {
-    int rank;
-    char vtk_filename[PETSC_MAX_PATH_LEN];
-    FILE *vtk_fp = NULL;
+    int rank, nproc;
+    char name_pvtu[PETSC_MAX_PATH_LEN];
+    char name_vtu[PETSC_MAX_PATH_LEN];
+    FILE *fp = NULL;
     PetscErrorCode ierr;
-    PetscInt si, sj, sk, nx, ny, nz, i;
-    PetscInt N;
-    PetscInt memory_offset;
-    DM cda;
-    Vec coords;
+    PetscInt si, sj, sk, nx, ny, nz;
+    PetscInt i, j, k, e;
+    PetscInt n, N;
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-    ierr = PetscSNPrintf(vtk_filename, 
-                         sizeof(vtk_filename), "subdo-%s-p%1.4d.vts",
+    MPI_Comm_size(PETSC_COMM_WORLD, &nproc);
+    ierr = PetscSNPrintf(name_pvtu,
+                         sizeof(name_pvtu), "%s.pvtu",
                          file_prefix, rank); CHKERRQ(ierr);
-    vtk_fp = fopen(vtk_filename,"w");
-    PetscFPrintf(PETSC_COMM_SELF, vtk_fp, "<?xml version=\"1.0\"?>\n");
+
+    fp = fopen(name_pvtu,"w");
+
+    PetscFPrintf(PETSC_COMM_SELF, fp,
+                 "<?xml version=\"1.0\"?>\n"
+                 "<VTKFile type=\"PUnstructuredGrid\" version=\"0.1\" "
+                 "byte_order=\"LittleEndian\">\n"
+                 "<PUnstructuredGrid GhostLevel=\"0\">\n"
+                 "<PPoints>\n"
+                 "  <PDataArray type=\"Float64\" Name=\"Position\" "
+                 "NumberOfComponents=\"3\"/>\n"
+                 "</PPoints>\n"
+                 "<PCells>\n"
+                 "  <PDataArray type=\"Int32\" Name=\"connectivity\" "
+                 "NumberOfComponents=\"1\"/>\n"
+                 "  <PDataArray type=\"Int32\" Name=\"offsets\"      "
+                 "NumberOfComponents=\"1\"/>\n"
+                 "  <PDataArray type=\"UInt8\" Name=\"types\"        "
+                 "NumberOfComponents=\"1\"/>\n"
+                 "</PCells>\n"
+                 "<PPointData Vectors=\"displ\">\n"
+                 "  <PDataArray type=\"Float64\" Name=\"displ\"    "
+                 "NumberOfComponents=\"3\" />\n"
+                 "</PPointData>\n"
+                 "<PCellData>\n"
+                 "  <PDataArray type=\"Int32\"   Name=\"part\"   "
+                 "NumberOfComponents=\"1\"/>\n"
+//                 "<PDataArray type=\"Float64\" Name=\"strain\" "
+//                 "NumberOfComponents=\"6\"/>\n"
+//                 "<PDataArray type=\"Float64\" Name=\"stress\" "
+//                 "NumberOfComponents=\"6\"/>\n"
+                 "</PCellData>\n");
+
+    for (i = 0; i < nproc; ++i) {
+      sprintf(name_vtu, "%s-subdo-%d", file_prefix, i);
+      PetscFPrintf(PETSC_COMM_SELF, fp,
+                   "  <Piece Source=\"%s.vtu\"/>\n", name_vtu);
+    }
+    PetscFPrintf(PETSC_COMM_SELF, fp,
+                 "</PUnstructuredGrid>\n"
+                 "</VTKFile>\n");
+
+    fclose(fp);
+
+    //------------------------------------------------------------
+
+    sprintf(name_vtu, "%s-subdo-%d.vtu", file_prefix, rank);
+    fp = fopen(name_vtu, "w");
+
+    PetscInt nelem, npe;
+    const PetscInt *eix, *eixp;
 
     ierr = DMDAGetGhostCorners(DA, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
+    ierr = DMDAGetElements(DA, &nelem, &npe, &eix); CHKERRQ(ierr);
     N = nx * ny * nz;
 
-    PetscFPrintf(PETSC_COMM_SELF, vtk_fp,
-                 "<VTKFile type=\"StructuredGrid\" version=\"0.1\" "
-                 "byte_order=\"LittleEndian\">\n");
-    PetscFPrintf(PETSC_COMM_SELF, vtk_fp, 
-                 "  <StructuredGrid WholeExtent=\"%D %D %D %D %D %D\">\n",
-                 si, si + nx - 1, sj, sj + ny - 1, sk, sk + nz - 1);
-    PetscFPrintf(PETSC_COMM_SELF, vtk_fp,
-                 "    <Piece Extent=\"%D %D %D %D %D %D\">\n",
-                 si, si + nx - 1, sj, sj + ny - 1, sk, sk + nz - 1);
+    PetscFPrintf(PETSC_COMM_SELF, fp,
+            "<?xml version=\"1.0\"?>\n"
+            "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" "
+            "byte_order=\"LittleEndian\">\n"
+            "<UnstructuredGrid>\n"
+            "<Piece NumberOfPoints=\"%d\" NumberOfCells=\"%d\">\n"
+            "<Points>\n",
+            N, nelem);
 
-    memory_offset = 0;
+    PetscFPrintf(PETSC_COMM_SELF, fp, "<DataArray type=\"Float64\" "
+                 "Name=\"Position\" NumberOfComponents=\"3\" "
+                 "format=\"ascii\">\n");
 
-    PetscFPrintf(PETSC_COMM_SELF, vtk_fp, "      <CellData></CellData>\n");
-    PetscFPrintf(PETSC_COMM_SELF, vtk_fp, "      <Points>\n");
-
-    PetscFPrintf(PETSC_COMM_SELF, vtk_fp,
-                 "        <DataArray type=\"Float64\" NumberOfComponents=\"3\" "
-                 "format=\"appended\" offset=\"%d\" />\n", memory_offset);
-    memory_offset = memory_offset + sizeof(PetscInt) + \
-                    sizeof(PetscScalar) * N * DIM;
-
-    PetscFPrintf(PETSC_COMM_SELF, vtk_fp, "      </Points>\n");
-//    PetscFPrintf(PETSC_COMM_SELF, vtk_fp, "      <PointData Scalars=\" ");
-//
-//    PetscFPrintf(PETSC_COMM_SELF, vtk_fp, "disp");
-//
-//    PetscFPrintf(PETSC_COMM_SELF, vtk_fp, "\">\n");
-//    PetscFPrintf(PETSC_COMM_SELF, vtk_fp,
-//                 "        <DataArray type=\"Float64\" Name=\"%s\" "
-//                 "format=\"appended\" offset=\"%d\"/>\n", "disp", memory_offset);
-//
-//    PetscFPrintf(PETSC_COMM_SELF, vtk_fp, "      </PointData>\n");
-    PetscFPrintf(PETSC_COMM_SELF, vtk_fp, "    </Piece>\n");
-    PetscFPrintf(PETSC_COMM_SELF, vtk_fp, "  </StructuredGrid>\n");
-
-    Vec u_loc;
-    PetscScalar *u_arr;
-
-    ierr = DMGetLocalVector(DA, &u_loc); CHKERRQ(ierr);
-    ierr = DMGlobalToLocalBegin(DA, u, INSERT_VALUES, u_loc); CHKERRQ(ierr);
-    ierr = DMGlobalToLocalEnd(DA, u,INSERT_VALUES, u_loc); CHKERRQ(ierr);
-    ierr = VecGetArray(u_loc, &u_arr); CHKERRQ(ierr);
-
-    PetscFPrintf(PETSC_COMM_SELF, vtk_fp, "  <AppendedData encoding=\"raw\">\n");
-    PetscFPrintf(PETSC_COMM_SELF, vtk_fp, "_");
-
-    ierr = DMGetCoordinateDM(DA, &cda); CHKERRQ(ierr);
-    ierr = DMGetCoordinatesLocal(DA, &coords); CHKERRQ(ierr);
-
-    /* write coordinates */
-    {
-        int length = sizeof(PetscScalar) * N * DIM;
-        PetscScalar *allcoords;
-
-        fwrite(&length, sizeof(int), 1, vtk_fp);
-        ierr = VecGetArray(coords, &allcoords); CHKERRQ(ierr);
-        fwrite(allcoords, sizeof(PetscScalar), 3 * N, vtk_fp);
-        ierr = VecRestoreArray(coords, &allcoords); CHKERRQ(ierr);
+    for (k = sk ; k < sk + nz; ++k) {
+        for (j = sj ; j < sj + ny; ++j) {
+            for (i = si ; i < si + nx; ++i) {
+                PetscFPrintf(PETSC_COMM_SELF, fp, "%01.6e\t%01.6e\t%01.6e\n",
+                             i * dx, j * dy, k * dz);
+            }
+        }
     }
+    PetscFPrintf(PETSC_COMM_SELF, fp,
+                 "</DataArray>\n"
+                 "</Points>\n"
+                 "<Cells>\n");
 
-    PetscFPrintf(PETSC_COMM_SELF, vtk_fp, "\n  </AppendedData>\n");
-    PetscFPrintf(PETSC_COMM_SELF, vtk_fp, "</VTKFile>\n");
+    PetscFPrintf(PETSC_COMM_SELF, fp,
+                 "<DataArray type=\"Int32\" Name=\"connectivity\" "
+                 "NumberOfComponents=\"1\" format=\"ascii\">\n");
 
-    fclose(vtk_fp);
+    for (e = 0; e < nelem ; ++e) {
+        for (n = 0 ; n < npe; ++n)
+            PetscFPrintf(PETSC_COMM_SELF, fp, "%-6d\t", eix[e * npe + n]);
+        PetscFPrintf(PETSC_COMM_SELF, fp, "\n");
+    }
+    PetscFPrintf(PETSC_COMM_SELF, fp, "</DataArray>\n");
+
+
+    PetscFPrintf(PETSC_COMM_SELF, fp,
+                 "<DataArray type=\"Int32\" Name=\"offsets\" "
+                 "NumberOfComponents=\"1\" format=\"ascii\">\n");
+
+    for (e = 1; e < nelem + 1; ++e) {
+        PetscFPrintf(PETSC_COMM_SELF, fp, "%d\t", e * npe);
+    }
+    PetscFPrintf(PETSC_COMM_SELF, fp, "\n</DataArray>\n");
+
+    PetscFPrintf(PETSC_COMM_SELF, fp,
+                 "<DataArray type=\"UInt8\"  Name=\"types\" "
+                 "NumberOfComponents=\"1\" format=\"ascii\">\n");
+
+    for (e = 0; e < nelem ; ++e) {
+        PetscFPrintf(PETSC_COMM_SELF, fp, "12\t");
+    }
+    PetscFPrintf(PETSC_COMM_SELF, fp, "\n</DataArray>\n");
+
+    PetscFPrintf(PETSC_COMM_SELF, fp, "</Cells>\n");
+    PetscFPrintf(PETSC_COMM_SELF, fp, "<PointData Vectors=\"displ\">\n");
+    PetscFPrintf(PETSC_COMM_SELF, fp,
+                 "<DataArray type=\"Float64\" Name=\"displ\" "
+                 "NumberOfComponents=\"3\" format=\"ascii\" >\n");
+    for (n = 0; n < N; ++n) {
+        PetscFPrintf(PETSC_COMM_SELF, fp, "%01.6e\t%01.6e\t%01.6e\n",
+                     0., 0., 0.);
+    }
+    PetscFPrintf(PETSC_COMM_SELF, fp, "</DataArray>\n");
+    PetscFPrintf(PETSC_COMM_SELF, fp, "</PointData>\n");
+    PetscFPrintf(PETSC_COMM_SELF, fp, "<CellData>\n");
+
+    PetscFPrintf(PETSC_COMM_SELF, fp,
+                 "<DataArray type=\"Int32\" Name=\"part\" "
+                 "NumberOfComponents=\"1\" format=\"ascii\">\n");
+
+    for (e = 0; e < nelem; ++e)
+        PetscFPrintf(PETSC_COMM_SELF, fp, "%d\t", rank);
+    PetscFPrintf(PETSC_COMM_SELF, fp, "\n</DataArray>\n");
+
+    PetscFPrintf(PETSC_COMM_SELF, fp, "</CellData>\n");
+
+    PetscFPrintf(PETSC_COMM_SELF, fp,
+                 "</Piece>\n"
+                 "</UnstructuredGrid>\n"
+                 "</VTKFile>\n");
+
+    fclose(fp);
+
     return ierr;
 }

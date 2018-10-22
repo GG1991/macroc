@@ -83,6 +83,6 @@ PetscErrorCode solve_Ax(KSP ksp, Vec b, Vec x);
 
 void calc_B(int gp, double B[6][NPE * DIM]);
 
-PetscErrorCode write_vtk(const char *filename);
+PetscErrorCode write_pvtu(const char *filename);
 
 #endif

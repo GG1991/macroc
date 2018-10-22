@@ -66,7 +66,7 @@ int main(int argc,char **args)
             newton_it ++;
         }
         micropp_C_update_vars();
-        ierr = write_vtk("hola.vtk");
+        ierr = write_pvtu("solution");
     }
 
     t2 = MPI_Wtime();
