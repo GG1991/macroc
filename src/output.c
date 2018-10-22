@@ -90,8 +90,8 @@ PetscErrorCode write_pvtu(const char file_prefix[])
     PetscInt nelem, npe;
     const PetscInt *eix, *eixp;
 
-    ierr = DMDAGetGhostCorners(DA, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
-    ierr = DMDAGetElements(DA, &nelem, &npe, &eix); CHKERRQ(ierr);
+    ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
+    ierr = DMDAGetElements(da, &nelem, &npe, &eix); CHKERRQ(ierr);
     N = nx * ny * nz;
 
     PetscFPrintf(PETSC_COMM_SELF, fp,
@@ -156,13 +156,18 @@ PetscErrorCode write_pvtu(const char file_prefix[])
                  "<DataArray type=\"Float64\" Name=\"displ\" "
                  "NumberOfComponents=\"3\" format=\"ascii\" >\n");
 
+    Vec u_loc;
+    ierr = DMCreateLocalVector(da, &u_loc);
+    ierr = DMGlobalToLocalBegin(da, u, INSERT_VALUES, u_loc);
+    ierr = DMGlobalToLocalEnd(da, u, INSERT_VALUES, u_loc);
+
     PetscScalar *u_arr;
-    ierr = VecGetArray(u, &u_arr);
+    ierr = VecGetArray(u_loc, &u_arr);
     for (n = 0; n < N; ++n) {
         PetscFPrintf(PETSC_COMM_SELF, fp, "%01.6e\t%01.6e\t%01.6e\n",
                      u_arr[n * DIM + 0], u_arr[n * DIM + 1], u_arr[n * DIM + 2]);
     }
-    VecRestoreArray(u, &u_arr);
+    VecRestoreArray(u_loc, &u_arr);
     PetscFPrintf(PETSC_COMM_SELF, fp, "</DataArray>\n");
     PetscFPrintf(PETSC_COMM_SELF, fp, "</PointData>\n");
     PetscFPrintf(PETSC_COMM_SELF, fp, "<CellData>\n");

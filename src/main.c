@@ -66,7 +66,16 @@ int main(int argc,char **args)
             newton_it ++;
         }
         micropp_C_update_vars();
-        ierr = write_pvtu("solution");
+
+        if (vtu_freq > 0 && time_s % vtu_freq == 0) {
+
+            char file_prefix[PETSC_MAX_PATH_LEN];
+            ierr = PetscSNPrintf(file_prefix,
+                                 sizeof(file_prefix), "solution_%d",
+                                 time_s); CHKERRQ(ierr);
+
+            ierr = write_pvtu(file_prefix);
+        }
     }
 
     t2 = MPI_Wtime();

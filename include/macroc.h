@@ -34,15 +34,15 @@
 #define NVOI       6
 #define DIM        3
 #define NEWTON_TOL 1.0e-1
-#define NEWTON_ITS 1
+#define NEWTON_ITS 2
 #define CONSTXG    0.577350269189626
 
 #define FINAL_TIME 10.0
 #define TIME_STEPS 1
 #define DT         0.001
-#define NX         100
-#define NY         100
-#define NZ         100
+#define NX         10
+#define NY         10
+#define NZ         10
 #define LX         10.0
 #define LY         1.0
 #define LZ         1.0
@@ -66,8 +66,9 @@ double wg;
 
 PetscInt ts;
 PetscReal dt, final_time;
+PetscInt vtu_freq;
 
-DM DA;
+DM da;
 PC pc;
 KSP ksp;
 Mat A;

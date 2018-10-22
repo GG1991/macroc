@@ -25,37 +25,32 @@
 PetscErrorCode set_bc(int time_step, Vec u)
 {
     PetscErrorCode ierr;
-    PetscInt *bc_global_ids;
+    PetscInt *ix;
     PetscReal time = time_step * dt;
     PetscReal *bc_vals;
-    const PetscInt *g_idx;
     PetscInt i, j, k, d;
     PetscInt si, sj, sk;
     PetscInt nx, ny, nz;
     PetscInt M, N, P;
     PetscInt nbcs;
 
-    ISLocalToGlobalMapping ltogm;
-
     double UY;
-    if(time < final_time / 2.){
+    if(time < final_time / 2.)
         UY = U_MAX * (time / final_time);
-    } else {
+    else
         UY = U_MAX;
-    }
 
-    ierr = DMDAGetInfo(DA, 0, &M, &N, &P, 0, 0, 0, 0, 0,
+    ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0,
                        0, 0, 0, 0); CHKERRQ(ierr);
-    ierr = DMGetLocalToGlobalMapping(DA, &ltogm); CHKERRQ(ierr);
-    ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
-    ierr = DMDAGetGhostCorners(DA, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
+    ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
 
-    bc_global_ids = malloc(ny * nz * DIM * sizeof(PetscInt));
+    Vec u_loc;
+    ierr = DMCreateLocalVector(da, &u_loc); CHKERRQ(ierr);
+    ierr = DMGlobalToLocalBegin(da, u, INSERT_VALUES, u_loc); CHKERRQ(ierr);
+    ierr = DMGlobalToLocalEnd(da, u, INSERT_VALUES, u_loc); CHKERRQ(ierr);
+
+    ix = malloc(ny * nz * DIM * sizeof(PetscInt));
     bc_vals = malloc(ny * nz * DIM * sizeof(PetscReal));
-
-    /* init the entries to -1 so VecSetValues will ignore them */
-    for (i = 0; i < ny * nz * DIM; ++i)
-        bc_global_ids[i] = -1;
 
     i = 0; /* X = 0 */
     for (k = 0; k < nz; ++k) {
@@ -65,22 +60,17 @@ PetscErrorCode set_bc(int time_step, Vec u)
                 PetscInt local_id = i + j * nx + k * nx * ny;
                 PetscInt index = (k * ny + j) * DIM + d;
 
-                bc_global_ids[index] = g_idx[local_id * DIM + d];
+                ix[index] = local_id * DIM + d;
                 bc_vals[index] =  0.;
             }
         }
     }
 
     nbcs = 0;
-    if (si == 0) {
+    if (si == 0)
         nbcs = ny * nz * DIM;
-    }
 
-    ierr = VecSetValues(u, nbcs, bc_global_ids, bc_vals,
-                        INSERT_VALUES); CHKERRQ(ierr);
-
-    for (i = 0; i < ny * nz * DIM; ++i)
-        bc_global_ids[i] = -1;
+    ierr = VecSetValues(u_loc, nbcs, ix, bc_vals, INSERT_VALUES); CHKERRQ(ierr);
 
     i = nx - 1; /* X = LX */
     for (k = 0; k < nz; ++k) {
@@ -90,28 +80,24 @@ PetscErrorCode set_bc(int time_step, Vec u)
                 PetscInt local_id = i + j * nx + k * nx * ny;
                 PetscInt index = (k * ny + j) * DIM + d;
 
-                bc_global_ids[index] = g_idx[local_id * DIM + d];
+                ix[index] = local_id * DIM + d;
                 bc_vals[index] = (d == 1) ? UY : 0.;
             }
         }
     }
 
     nbcs = 0;
-    if (si + nx == M) {
+    if (si + nx == M)
         nbcs = ny * nz * DIM;
-    }
 
-    ierr = VecSetValues(u, nbcs, bc_global_ids, bc_vals,
-                        INSERT_VALUES); CHKERRQ(ierr);
+    ierr = VecSetValues(u_loc, nbcs, ix, bc_vals, INSERT_VALUES); CHKERRQ(ierr);
 
-    ierr = VecAssemblyBegin(u); CHKERRQ(ierr);
-    ierr = VecAssemblyEnd(u); CHKERRQ(ierr);
-
+    ierr = DMLocalToGlobalBegin(da, u_loc, INSERT_VALUES, u);
+    ierr = DMLocalToGlobalEnd(da, u_loc, INSERT_VALUES, u);
     //VecView(u, PETSC_VIEWER_STDOUT_WORLD);
 
-    ierr = ISLocalToGlobalMappingRestoreIndices(ltogm, &g_idx); CHKERRQ(ierr);
-
-    free(bc_global_ids);
+    ierr = VecDestroy(&u_loc); CHKERRQ(ierr);
+    free(ix);
     free(bc_vals);
     return ierr;
 }
@@ -128,12 +114,12 @@ PetscErrorCode set_strains()
     double B[NVOI][NPE * DIM];
 
     Vec u_loc;
-    ierr = DMCreateLocalVector(DA, &u_loc); CHKERRQ(ierr);
-    ierr = DMGlobalToLocalBegin(DA, u, INSERT_VALUES, u_loc); CHKERRQ(ierr);
-    ierr = DMGlobalToLocalEnd(DA, u, INSERT_VALUES, u_loc); CHKERRQ(ierr);
+    ierr = DMCreateLocalVector(da, &u_loc); CHKERRQ(ierr);
+    ierr = DMGlobalToLocalBegin(da, u, INSERT_VALUES, u_loc); CHKERRQ(ierr);
+    ierr = DMGlobalToLocalEnd(da, u, INSERT_VALUES, u_loc); CHKERRQ(ierr);
 
     const PetscInt *eix;
-    ierr = DMDAGetElements(DA, &nelem, &npe, &eix); CHKERRQ(ierr);
+    ierr = DMDAGetElements(da, &nelem, &npe, &eix); CHKERRQ(ierr);
 
     for(ie = 0; ie < nelem; ++ie) {
 
@@ -175,7 +161,7 @@ int assembly_jac(Mat A)
     ierr = MatZeroEntries(A); CHKERRQ(ierr);
 
     const PetscInt *eix;
-    ierr = DMDAGetElements(DA, &nelem, &npe, &eix); CHKERRQ(ierr);
+    ierr = DMDAGetElements(da, &nelem, &npe, &eix); CHKERRQ(ierr);
 
     for(ie = 0; ie < nelem; ++ie) {
 
@@ -212,11 +198,11 @@ int assembly_jac(Mat A)
     const PetscInt *g_idx;
 
     ISLocalToGlobalMapping ltogm;
-    ierr = DMGetLocalToGlobalMapping(DA, &ltogm); CHKERRQ(ierr);
+    ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
     ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
-    ierr = DMDAGetInfo(DA, 0, &M, &N, &P, 0, 0,
+    ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0,
                        0, 0, 0, 0, 0, 0, 0); CHKERRQ(ierr);
-    ierr = DMDAGetGhostCorners(DA, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
+    ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
 
     PetscInt *rows = malloc(ny * nz * DIM * sizeof(PetscInt));
 
@@ -278,18 +264,16 @@ PetscErrorCode assembly_res(Vec b)
     double be[NPE * DIM * NPE * DIM];
     double B[NVOI][NPE * DIM];
 
-    const PetscInt *g_idx;
+    ierr = VecZeroEntries(b); CHKERRQ(ierr);
 
-    ISLocalToGlobalMapping ltogm;
-    ierr = DMGetLocalToGlobalMapping(DA, &ltogm); CHKERRQ(ierr);
-    ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
-
-    ierr = VecZeroEntries(b);
-    VecAssemblyBegin(b); CHKERRQ(ierr);
-    VecAssemblyEnd(b); CHKERRQ(ierr);
+    Vec b_loc;
+    PetscScalar *b_arr;
+    ierr = DMGetLocalVector(da, &b_loc); CHKERRQ(ierr);
+    ierr = VecZeroEntries(b_loc); CHKERRQ(ierr);
+    ierr = VecGetArray(b_loc, &b_arr);CHKERRQ(ierr);
 
     const PetscInt *eix;
-    ierr = DMDAGetElements(DA, &nelem, &npe, &eix); CHKERRQ(ierr);
+    ierr = DMDAGetElements(da, &nelem, &npe, &eix); CHKERRQ(ierr);
 
     for(ie = 0; ie < nelem; ++ie) {
 
@@ -309,21 +293,28 @@ PetscErrorCode assembly_res(Vec b)
             for(d = 0; d < DIM; ++d)
                 ix[n * DIM + d] = eix[ie * NPE + n] * DIM + d;
 
-        ierr = VecSetValues(b, NPE * DIM, ix, be, ADD_VALUES);
-        CHKERRQ(ierr);
+        for(n = 0; n < NPE * DIM; ++n)
+            b_arr[ix[n]] += be[n];
     }
-    VecAssemblyBegin(b); CHKERRQ(ierr);
-    VecAssemblyEnd(b); CHKERRQ(ierr);
+
+    ierr = DMLocalToGlobalBegin(da, b_loc, ADD_VALUES, b); CHKERRQ(ierr);
+    ierr = DMLocalToGlobalEnd(da, b_loc, ADD_VALUES, b); CHKERRQ(ierr);
+    ierr = VecRestoreArray(b_loc, &b_arr); CHKERRQ(ierr);
+    ierr = VecDestroy(&b_loc);
 
     /* Boundary Conditions */
     PetscInt si, sj, sk;
     PetscInt nx, ny, nz;
     PetscInt M, N, P;
     PetscInt nbcs = 0;
+    ISLocalToGlobalMapping ltogm;
+    const PetscInt *g_idx;
+    ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
+    ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
 
-    ierr = DMDAGetInfo(DA, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-    CHKERRQ(ierr);
-    ierr = DMDAGetGhostCorners(DA, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
+    ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0); CHKERRQ(ierr);
+    ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
 
     PetscInt *rows = malloc(ny * nz * DIM * sizeof(PetscInt));
     double *zeros = calloc(ny * nz * DIM, sizeof(double));
@@ -363,14 +354,13 @@ PetscErrorCode assembly_res(Vec b)
         nbcs = ny * nz * DIM;
 
     ierr = VecSetValues(b, nbcs, rows, zeros, INSERT_VALUES); CHKERRQ(ierr);
+    ierr = VecAssemblyBegin(b);CHKERRQ(ierr);
+    ierr = VecAssemblyEnd(b);CHKERRQ(ierr);
 
-    ierr = VecAssemblyBegin(b); CHKERRQ(ierr);
-    ierr = VecAssemblyEnd(b); CHKERRQ(ierr);
-
-    free(rows);
-
+    //VecView(b, PETSC_VIEWER_STDOUT_WORLD);
     ierr = VecScale(b, -1.); CHKERRQ(ierr);
 
+    free(rows);
     return ierr;
 }
 

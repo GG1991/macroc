@@ -46,17 +46,18 @@ Execution
 The mesh size and the processors in each direction are given by command line as:
 
 ```
--da_grid_x <int> - number of grid points in x direction
--da_grid_y <int> - number of grid points in y direction
--da_grid_z <int> - number of grid points in z direction
+-da_grid_x <int> - number of grid points in x direction (10)
+-da_grid_y <int> - number of grid points in y direction (10)
+-da_grid_z <int> - number of grid points in z direction (10)
 -da_processors_x <int> number of processors in x direction
 -da_processors_y <int> number of processors in y direction
 -da_processors_z <int> number of processors in z direction
--ts <int> number of time steps
--dt <double> time step
--lx <double> length in x direction
--ly <double> length in y direction
--lz <double> length in z direction
+-ts <int> number of time steps (1)
+-dt <double> time step (0.001)
+-lx <double> length in x direction (10.0)
+-ly <double> length in y direction (1.0)
+-lz <double> length in z direction (1.0)
+-vtu_freq <int> frequency of VTU plots (-1)
 ```
 
 Examples

@@ -40,34 +40,37 @@ PetscErrorCode init()
     ly = LY;
     lz = LZ;
 
+    vtu_freq = -1;
+
     PetscOptionsGetInt(NULL, NULL, "-ts", &ts, NULL);
     PetscOptionsGetReal(NULL, NULL, "-dt", &dt, NULL);
     PetscOptionsGetReal(NULL, NULL, "-lx", &lx, NULL);
     PetscOptionsGetReal(NULL, NULL, "-ly", &ly, NULL);
     PetscOptionsGetReal(NULL, NULL, "-lz", &lz, NULL);
+    PetscOptionsGetInt(NULL, NULL, "-vtu_freq", &vtu_freq, NULL);
 
     DMBoundaryType bx = DM_BOUNDARY_NONE, by = DM_BOUNDARY_NONE,
                    bz = DM_BOUNDARY_NONE;
     ierr = DMDACreate3d(PETSC_COMM_WORLD, bx, by, bz, DMDA_STENCIL_BOX,
                         NX, NY, NZ,
                         PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,
-                        DIM, 1, NULL, NULL, NULL, &DA);
+                        DIM, 1, NULL, NULL, NULL, &da);
 
-    ierr = DMDASetUniformCoordinates(DA, 0., lx, 0., ly, 0., lz); CHKERRQ(ierr);
-    ierr = DMSetMatType(DA, MATAIJ); CHKERRQ(ierr);
-    ierr = DMSetFromOptions(DA); CHKERRQ(ierr);
-    ierr = DMSetUp(DA); CHKERRQ(ierr);
-    ierr = DMCreateMatrix(DA, &A); CHKERRQ(ierr);
-    ierr = DMCreateGlobalVector(DA, &u); CHKERRQ(ierr);
-    ierr = DMCreateGlobalVector(DA, &b); CHKERRQ(ierr);
-    ierr = DMCreateGlobalVector(DA, &du); CHKERRQ(ierr);
+    ierr = DMDASetUniformCoordinates(da, 0., lx, 0., ly, 0., lz); CHKERRQ(ierr);
+    ierr = DMSetMatType(da, MATAIJ); CHKERRQ(ierr);
+    ierr = DMSetFromOptions(da); CHKERRQ(ierr);
+    ierr = DMSetUp(da); CHKERRQ(ierr);
+    ierr = DMCreateMatrix(da, &A); CHKERRQ(ierr);
+    ierr = DMCreateGlobalVector(da, &u); CHKERRQ(ierr);
+    ierr = DMCreateGlobalVector(da, &b); CHKERRQ(ierr);
+    ierr = DMCreateGlobalVector(da, &du); CHKERRQ(ierr);
 
     ierr = VecZeroEntries(u); CHKERRQ(ierr);
     ierr = VecZeroEntries(b); CHKERRQ(ierr);
     ierr = VecZeroEntries(du); CHKERRQ(ierr);
 
     PetscInt M, N, P;
-    ierr = DMDAGetInfo(DA, 0, &M, &N, &P, 0, 0, 0, 0,
+    ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0,
                        0, 0, 0, 0, 0); CHKERRQ(ierr);
 
     dx = lx / (M - 1);
@@ -105,7 +108,7 @@ PetscErrorCode init()
     }
 
     PetscInt nex, ney, nez;
-    ierr = DMDAGetElementsSizes(DA, &nex, &ney, &nez); CHKERRQ(ierr);
+    ierr = DMDAGetElementsSizes(da, &nex, &ney, &nez); CHKERRQ(ierr);
     PetscSynchronizedPrintf(PETSC_COMM_WORLD,
                             "rank:%d\tne:%d\tnex:%d\tney:%d\tnez:%d\n",
                             rank, (int) (nex * ney * nez), (int) nex,
