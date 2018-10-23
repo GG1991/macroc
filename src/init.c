@@ -56,7 +56,6 @@ PetscErrorCode init()
                         PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,
                         DIM, 1, NULL, NULL, NULL, &da);
 
-    ierr = DMDASetUniformCoordinates(da, 0., lx, 0., ly, 0., lz); CHKERRQ(ierr);
     ierr = DMSetMatType(da, MATAIJ); CHKERRQ(ierr);
     ierr = DMSetFromOptions(da); CHKERRQ(ierr);
     ierr = DMSetUp(da); CHKERRQ(ierr);
