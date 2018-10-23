@@ -85,5 +85,6 @@ PetscErrorCode solve_Ax(KSP ksp, Vec b, Vec x);
 void calc_B(int gp, double B[6][NPE * DIM]);
 
 PetscErrorCode write_pvtu(const char *filename);
+PetscErrorCode minmax_elems_across_mpis(DM da, int *min, int *max);
 
 #endif
