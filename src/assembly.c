@@ -194,14 +194,18 @@ int assembly_jac(Mat A)
     PetscInt M, N, P;
     PetscInt nbcs = 0;
     const PetscInt *g_idx;
-
+    PetscInt *rows;
     ISLocalToGlobalMapping ltogm;
+
     ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
     ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
     ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
 
-    PetscInt *rows = malloc(ny * nz * DIM * sizeof(PetscInt));
+    ierr = PetscMalloc1(ny * nz * DIM, &rows); CHKERRQ(ierr);
+
+    for (i = 0; i < ny * nz * DIM; ++i)
+        rows[i] = -1;
 
     i = 0;
     for (k = 0; k < nz; ++k) {
@@ -221,6 +225,9 @@ int assembly_jac(Mat A)
 
     MatZeroRowsColumns(A, nbcs, rows, 1., NULL, NULL);
 
+    for (i = 0; i < ny * nz * DIM; ++i)
+        rows[i] = -1;
+
     i = nx - 1;
     for (k = 0; k < nz; ++k) {
         for (j = 0; j < ny; ++j) {
@@ -239,13 +246,10 @@ int assembly_jac(Mat A)
 
     MatZeroRowsColumns(A, nbcs, rows, 1., NULL, NULL);
 
-    ierr = MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
-    ierr = MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
-    ierr = ISLocalToGlobalMappingRestoreIndices(ltogm, &g_idx); CHKERRQ(ierr);
-
     //MatView(A, PETSC_VIEWER_DRAW_WORLD);
 
-    free(rows);
+    ierr = ISLocalToGlobalMappingRestoreIndices(ltogm, &g_idx); CHKERRQ(ierr);
+    PetscFree(rows);
     return ierr;
 }
 
