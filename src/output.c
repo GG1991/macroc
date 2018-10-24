@@ -30,7 +30,7 @@ PetscErrorCode write_pvtu(const char file_prefix[])
     FILE *fp = NULL;
     PetscErrorCode ierr;
     PetscInt si, sj, sk, nx, ny, nz;
-    PetscInt i, j, k, e;
+    PetscInt i, j, k, e, gp;
     PetscInt n, N;
 
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
@@ -65,10 +65,12 @@ PetscErrorCode write_pvtu(const char file_prefix[])
                  "<PCellData>\n"
                  "  <PDataArray type=\"Int32\"   Name=\"part\"   "
                  "NumberOfComponents=\"1\"/>\n"
-//                 "<PDataArray type=\"Float64\" Name=\"strain\" "
-//                 "NumberOfComponents=\"6\"/>\n"
-//                 "<PDataArray type=\"Float64\" Name=\"stress\" "
-//                 "NumberOfComponents=\"6\"/>\n"
+                 "  <PDataArray type=\"Float64\"   Name=\"cost\"   "
+                 "NumberOfComponents=\"1\"/>\n"
+                 "<PDataArray type=\"Float64\" Name=\"strain\" "
+                 "NumberOfComponents=\"6\"/>\n"
+                 "<PDataArray type=\"Float64\" Name=\"stress\" "
+                 "NumberOfComponents=\"6\"/>\n"
                  "</PCellData>\n");
 
     for (i = 0; i < nproc; ++i) {
@@ -167,7 +169,6 @@ PetscErrorCode write_pvtu(const char file_prefix[])
         PetscFPrintf(PETSC_COMM_SELF, fp, "%01.6e\t%01.6e\t%01.6e\n",
                      u_arr[n * DIM + 0], u_arr[n * DIM + 1], u_arr[n * DIM + 2]);
     }
-    VecRestoreArray(u_loc, &u_arr);
     PetscFPrintf(PETSC_COMM_SELF, fp, "</DataArray>\n");
     PetscFPrintf(PETSC_COMM_SELF, fp, "</PointData>\n");
     PetscFPrintf(PETSC_COMM_SELF, fp, "<CellData>\n");
@@ -180,6 +181,68 @@ PetscErrorCode write_pvtu(const char file_prefix[])
         PetscFPrintf(PETSC_COMM_SELF, fp, "%d\t", rank);
     PetscFPrintf(PETSC_COMM_SELF, fp, "\n</DataArray>\n");
 
+    PetscFPrintf(PETSC_COMM_SELF, fp,
+                 "<DataArray type=\"Float64\" Name=\"cost\" "
+                 "NumberOfComponents=\"1\" format=\"ascii\">\n");
+
+    for (e = 0; e < nelem; ++e) {
+        double cost = 0.;
+        for (gp = 0; gp < NGP; ++gp) {
+            int gpi = e * NPE + gp;
+            cost += 1. * micropp_C_get_sigma_cost3(gpi);
+        }
+        PetscFPrintf(PETSC_COMM_SELF, fp, "%lf\t", cost / NGP);
+    }
+    PetscFPrintf(PETSC_COMM_SELF, fp, "\n</DataArray>\n");
+
+    PetscFPrintf(PETSC_COMM_SELF, fp,
+                 "<DataArray type=\"Float64\" Name=\"strain\" "
+                 "NumberOfComponents=\"6\" format=\"ascii\">");
+
+    double u_e[NPE * DIM];
+    double B[NVOI][NPE * DIM];
+
+    for (e = 0; e < nelem; ++e) {
+
+        for(n = 0; n < NPE; ++n)
+            for(i = 0; i < DIM; ++i)
+                u_e[n * DIM + i] = u_arr[eix[e * NPE + n] * DIM + i];
+
+        double strain_gp[NVOI], strain[NVOI] = { 0. };
+        for(gp = 0; gp < NGP; ++gp) {
+
+            calc_B(gp, B);
+            memset(strain_gp, 0., NVOI * sizeof(double));
+            for(i = 0; i < NVOI; ++i)
+                for(j = 0; j < NPE * DIM; ++j)
+                    strain_gp[i] += B[i][j] * u_e[j];
+
+            for(i = 0; i < NVOI; ++i)
+                strain[i] += strain_gp[i];
+
+        }
+        for (i = 0; i < NVOI; ++i)
+            PetscFPrintf(PETSC_COMM_SELF, fp, "%lf\t", strain[i] / NGP);
+    }
+    PetscFPrintf(PETSC_COMM_SELF, fp, "\n</DataArray>\n");
+
+    PetscFPrintf(PETSC_COMM_SELF, fp,
+                 "<DataArray type=\"Float64\" Name=\"stress\" "
+                 "NumberOfComponents=\"6\" format=\"ascii\">");
+    for (e = 0; e < nelem; ++e) {
+        double stress_gp[NVOI], stress[NVOI] = { 0. };
+        for (gp = 0; gp < NGP; ++gp) {
+            int gpi = e * NPE + gp;
+            micropp_C_get_stress3(gpi, stress_gp);
+            for (i = 0; i < NVOI; ++i)
+                stress[i] += stress_gp[i];
+
+        }
+        for (i = 0; i < NVOI; ++i)
+            PetscFPrintf(PETSC_COMM_SELF, fp, "%lf\t", stress[i] / NGP);
+    }
+    PetscFPrintf(PETSC_COMM_SELF, fp, "\n</DataArray>\n");
+
     PetscFPrintf(PETSC_COMM_SELF, fp, "</CellData>\n");
 
     PetscFPrintf(PETSC_COMM_SELF, fp,
@@ -187,6 +250,8 @@ PetscErrorCode write_pvtu(const char file_prefix[])
                  "</UnstructuredGrid>\n"
                  "</VTKFile>\n");
 
+    ierr = VecRestoreArray(u_loc, &u_arr); CHKERRQ(ierr);
+    ierr = VecDestroy(&u_loc); CHKERRQ(ierr);
     fclose(fp);
 
     return ierr;
