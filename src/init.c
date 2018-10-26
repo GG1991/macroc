@@ -26,6 +26,7 @@ PetscErrorCode init()
 {
     PetscErrorCode ierr;
     char mess[64];
+    PetscInt micro_n = 5;
 
     int rank, nproc;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -47,6 +48,7 @@ PetscErrorCode init()
     PetscOptionsGetReal(NULL, NULL, "-lx", &lx, NULL);
     PetscOptionsGetReal(NULL, NULL, "-ly", &ly, NULL);
     PetscOptionsGetReal(NULL, NULL, "-lz", &lz, NULL);
+    PetscOptionsGetInt(NULL, NULL, "-micro_n", &micro_n, NULL);
     PetscOptionsGetInt(NULL, NULL, "-vtu_freq", &vtu_freq, NULL);
 
     DMBoundaryType bx = DM_BOUNDARY_NONE, by = DM_BOUNDARY_NONE,
@@ -123,14 +125,13 @@ PetscErrorCode init()
 
     // Initializes <micro> declared in <micropp_c_wrapper.h>
     int ngpl = nex * ney * nez * NGP;
-    int size[3] = { 5, 5, 5 };
+    int size[3] = { micro_n, micro_n, micro_n };
     int type = 1;
     double params[4] = { 1., 1., 1., .5 };
     micropp_C_create3(ngpl, size, type, params);
 
-    if(!rank) {
+    if(!rank)
         micropp_C_print_info();
-    }
 
     return ierr;
 }

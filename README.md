@@ -52,6 +52,7 @@ The mesh size and the processors in each direction are given by command line as:
 -da_processors_x <int> number of processors in x direction
 -da_processors_y <int> number of processors in y direction
 -da_processors_z <int> number of processors in z direction
+-micro_n <int> number nodes in each direction of microscopic mesh
 -ts <int> number of time steps (1)
 -dt <double> time step (0.001)
 -lx <double> length in x direction (10.0)
