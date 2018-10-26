@@ -33,7 +33,7 @@ rm -rf times.dat time_aux.dat
 for i in ${nodes[@]}; do 
 	awk -v p=$i '/Elapsed/{print p"\t"$4}' $i/macroc_*.out >> times.dat
 done
-awk 'NR==1 {t1=($1 * $2);}{print $1"\t"$2"\t"t1/$2}' times.dat >> times_aux.dat
+awk 'NR==1 {t1=($1 * 48 * $2);}{print $1*48"\t"$1"\t"$2"\t"t1/$2}' times.dat >> times_aux.dat
 mv times_aux.dat times.dat
 }
 
