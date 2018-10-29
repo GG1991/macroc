@@ -41,15 +41,19 @@ PetscErrorCode init()
     ly = LY;
     lz = LZ;
 
-    vtu_freq = -1;
+    vtu_freq = VTU_FREQ;
+    newton_max_its = NEWTON_MAX_ITS;
+    newton_min_tol = NEWTON_MIN_TOL;
 
-    PetscOptionsGetInt(NULL, NULL, "-ts", &ts, NULL);
     PetscOptionsGetReal(NULL, NULL, "-dt", &dt, NULL);
     PetscOptionsGetReal(NULL, NULL, "-lx", &lx, NULL);
     PetscOptionsGetReal(NULL, NULL, "-ly", &ly, NULL);
     PetscOptionsGetReal(NULL, NULL, "-lz", &lz, NULL);
+    PetscOptionsGetReal(NULL, NULL, "-new_tol", &newton_min_tol, NULL);
+    PetscOptionsGetInt(NULL, NULL, "-ts", &ts, NULL);
     PetscOptionsGetInt(NULL, NULL, "-micro_n", &micro_n, NULL);
     PetscOptionsGetInt(NULL, NULL, "-vtu_freq", &vtu_freq, NULL);
+    PetscOptionsGetInt(NULL, NULL, "-new_its", &newton_max_its, NULL);
 
     DMBoundaryType bx = DM_BOUNDARY_NONE, by = DM_BOUNDARY_NONE,
                    bz = DM_BOUNDARY_NONE;

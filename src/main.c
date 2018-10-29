@@ -44,7 +44,7 @@ int main(int argc,char **args)
         ierr = set_bc(time_s, u);
 
         newton_it = 0;
-        while(newton_it < NEWTON_ITS) {
+        while(newton_it < newton_max_its) {
 
             PetscPrintf(PETSC_COMM_WORLD, "\nNewton Iteration = %d\n", newton_it);
             PetscPrintf(PETSC_COMM_WORLD, "Homogenizing MicroPP\n");
@@ -56,7 +56,7 @@ int main(int argc,char **args)
             ierr = assembly_res(b);
             ierr = VecNorm(b, NORM_2, &norm); CHKERRQ(ierr);
             PetscPrintf(PETSC_COMM_WORLD, "|RES| = %e\n", norm);
-            if (norm < NEWTON_TOL) break;
+            if (norm < newton_min_tol) break;
 
             ierr = assembly_jac(A);
             ierr = solve_Ax(ksp, b, du);

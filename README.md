@@ -59,6 +59,8 @@ The mesh size and the processors in each direction are given by command line as:
 -ly <double> length in y direction (1.0)
 -lz <double> length in z direction (1.0)
 -vtu_freq <int> frequency of VTU plots (-1)
+-new_its <int> maximum number of Newton Iterations
+-new_tol <double> minimum tolerance of Newton residue
 ```
 
 Examples

@@ -29,27 +29,29 @@
 #include "petscdm.h"
 #include "petscdmda.h"
 
-#define NGP        8
-#define NPE        8
-#define NVOI       6
-#define DIM        3
-#define NEWTON_TOL 1.0e-1
-#define NEWTON_ITS 2
-#define CONSTXG    0.577350269189626
+#define NGP            8
+#define NPE            8
+#define NVOI           6
+#define DIM            3
+#define NEWTON_MIN_TOL 1.0e-1
+#define NEWTON_MAX_ITS 2
 
-#define FINAL_TIME 10.0
-#define TIME_STEPS 1
-#define DT         0.001
-#define NX         10
-#define NY         10
-#define NZ         10
-#define LX         10.0
-#define LY         1.0
-#define LZ         1.0
+#define FINAL_TIME     10.0
+#define TIME_STEPS     1
+#define VTU_FREQ       -1
+#define DT             0.001
+#define NX             10
+#define NY             10
+#define NZ             10
+#define LX             10.0
+#define LY             1.0
+#define LZ             1.0
 
-#define U_MAX      -0.8
+#define U_MAX          -0.8
 
 static char help[] = "FE code to solve macroscopic problems with PETSc.\n";
+
+#define CONSTXG        0.577350269189626
 
 static double xg[8][3] = {
     { -CONSTXG, -CONSTXG, -CONSTXG },
@@ -64,9 +66,11 @@ static double xg[8][3] = {
 double lx, ly, lz, dx, dy, dz;
 double wg;
 
-PetscInt ts;
 PetscReal dt, final_time;
+PetscReal newton_min_tol;
+PetscInt ts;
 PetscInt vtu_freq;
+PetscInt newton_max_its;
 
 DM da;
 PC pc;
