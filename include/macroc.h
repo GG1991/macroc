@@ -95,5 +95,6 @@ PetscErrorCode minmax_elems_across_mpis(DM da, int *min, int *max);
 
 PetscErrorCode set_bc(int time_step, Vec u);
 PetscErrorCode bc_apply_on_u_bending(double U, Vec u);
+PetscErrorCode bc_apply_on_jac_bending(Mat A);
 
 #endif
