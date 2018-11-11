@@ -22,24 +22,6 @@
 #include "macroc.h"
 
 
-PetscErrorCode set_bc(int time_step, Vec u)
-{
-	PetscErrorCode ierr;
-	PetscReal time = time_step * dt;
-
-	double U;
-	if(time < final_time / 2.)
-		U = U_MAX * (time / final_time);
-	else
-		U = U_MAX;
-
-	if (bc_type == BC_BENDING) {
-		ierr = bc_apply_on_u_bending(U, u);
-	}
-	return ierr;
-}
-
-
 PetscErrorCode set_strains()
 {
 	PetscErrorCode ierr;
@@ -127,9 +109,7 @@ PetscErrorCode assembly_jac(Mat A)
 	ierr = MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
 	ierr = MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
 
-	if (bc_type == BC_BENDING) {
-		ierr = bc_apply_on_jac_bending(A);
-	}
+	ierr = apply_bc_on_jac(A);
 
 	//MatView(A, PETSC_VIEWER_DRAW_WORLD);
 
@@ -186,9 +166,7 @@ PetscErrorCode assembly_res(Vec b)
 	ierr = VecRestoreArray(b_loc, &b_arr); CHKERRQ(ierr);
 	ierr = VecDestroy(&b_loc);
 
-	if (bc_type == BC_BENDING) {
-		ierr = bc_apply_on_res_bending(b);
-	}
+	ierr = apply_bc_on_res(b);
 
 	ierr = VecScale(b, -1.); CHKERRQ(ierr);
 
@@ -200,77 +178,77 @@ PetscErrorCode assembly_res(Vec b)
 
 PetscErrorCode solve_Ax(KSP ksp, Vec b, Vec x)
 {
-    PetscErrorCode ierr;
-    PetscInt its;
-    PetscReal rnorm;
+	PetscErrorCode ierr;
+	PetscInt its;
+	PetscReal rnorm;
 
-    ierr = KSPSolve(ksp, b, x); CHKERRQ(ierr);
-    ierr = KSPGetIterationNumber(ksp, &its);
-    ierr = KSPGetResidualNorm(ksp, &rnorm);
-    PetscPrintf(PETSC_COMM_WORLD,
-                "KSP : |Ax - b|/|Ax| = %e\tIts = %d\n", rnorm, its);
+	ierr = KSPSolve(ksp, b, x); CHKERRQ(ierr);
+	ierr = KSPGetIterationNumber(ksp, &its);
+	ierr = KSPGetResidualNorm(ksp, &rnorm);
+	PetscPrintf(PETSC_COMM_WORLD,
+		    "KSP : |Ax - b|/|Ax| = %e\tIts = %d\n", rnorm, its);
 
-    return ierr;
+	return ierr;
 }
 
 
 void calc_B(int gp, double B[6][NPE * DIM])
 {
-    int i;
-    double dx = 1., dy = 1., dz = 1.;
+	int i;
+	double dx = 1., dy = 1., dz = 1.;
 
-    const double dsh[NPE][DIM] = {
-        {
-            -(1 - xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
-            -(1 - xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
-            -(1 - xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
-        {
-            +(1 - xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
-            -(1 + xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
-            -(1 + xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
-        {
-            +(1 + xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
-            +(1 + xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
-            -(1 + xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
-        {
-            -(1 + xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
-            +(1 - xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
-            -(1 - xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
-        {
-            -(1 - xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
-            -(1 - xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
-            +(1 - xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
-        {
-            +(1 - xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
-            -(1 + xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
-            +(1 + xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
-        {
-            +(1 + xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
-            +(1 + xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
-            +(1 + xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
-        {
-            -(1 + xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
-            +(1 - xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
-            +(1 - xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz } };
+	const double dsh[NPE][DIM] = {
+		{
+			-(1 - xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
+			-(1 - xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
+			-(1 - xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
+		{
+			+(1 - xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
+			-(1 + xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
+			-(1 + xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
+		{
+			+(1 + xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
+			+(1 + xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
+			-(1 + xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
+		{
+			-(1 + xg[gp][1]) * (1 - xg[gp][2]) / 8. * 2. / dx,
+			+(1 - xg[gp][0]) * (1 - xg[gp][2]) / 8. * 2. / dy,
+			-(1 - xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
+		{
+			-(1 - xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
+			-(1 - xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
+			+(1 - xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
+		{
+			+(1 - xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
+			-(1 + xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
+			+(1 + xg[gp][0]) * (1 - xg[gp][1]) / 8. * 2. / dz },
+		{
+			+(1 + xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
+			+(1 + xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
+			+(1 + xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz },
+		{
+			-(1 + xg[gp][1]) * (1 + xg[gp][2]) / 8. * 2. / dx,
+			+(1 - xg[gp][0]) * (1 + xg[gp][2]) / 8. * 2. / dy,
+			+(1 - xg[gp][0]) * (1 + xg[gp][1]) / 8. * 2. / dz } };
 
-    for (i = 0; i < NPE; ++i) {
-        B[0][i * DIM    ] = dsh[i][0];
-        B[0][i * DIM + 1] = 0;
-        B[0][i * DIM + 2] = 0;
-        B[1][i * DIM    ] = 0;
-        B[1][i * DIM + 1] = dsh[i][1];
-        B[1][i * DIM + 2] = 0;
-        B[2][i * DIM    ] = 0;
-        B[2][i * DIM + 1] = 0;
-        B[2][i * DIM + 2] = dsh[i][2];
-        B[3][i * DIM    ] = dsh[i][1];
-        B[3][i * DIM + 1] = dsh[i][0];
-        B[3][i * DIM + 2] = 0;
-        B[4][i * DIM    ] = dsh[i][2];
-        B[4][i * DIM + 1] = 0;
-        B[4][i * DIM + 2] = dsh[i][0];
-        B[5][i * DIM    ] = 0;
-        B[5][i * DIM + 1] = dsh[i][2];
-        B[5][i * DIM + 2] = dsh[i][1];
-    }
+	for (i = 0; i < NPE; ++i) {
+		B[0][i * DIM    ] = dsh[i][0];
+		B[0][i * DIM + 1] = 0;
+		B[0][i * DIM + 2] = 0;
+		B[1][i * DIM    ] = 0;
+		B[1][i * DIM + 1] = dsh[i][1];
+		B[1][i * DIM + 2] = 0;
+		B[2][i * DIM    ] = 0;
+		B[2][i * DIM + 1] = 0;
+		B[2][i * DIM + 2] = dsh[i][2];
+		B[3][i * DIM    ] = dsh[i][1];
+		B[3][i * DIM + 1] = dsh[i][0];
+		B[3][i * DIM + 2] = 0;
+		B[4][i * DIM    ] = dsh[i][2];
+		B[4][i * DIM + 1] = 0;
+		B[4][i * DIM + 2] = dsh[i][0];
+		B[5][i * DIM    ] = 0;
+		B[5][i * DIM + 1] = dsh[i][2];
+		B[5][i * DIM + 2] = dsh[i][1];
+	}
 }
