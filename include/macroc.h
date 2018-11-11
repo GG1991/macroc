@@ -93,9 +93,12 @@ void calc_B(int gp, double B[6][NPE * DIM]);
 PetscErrorCode write_pvtu(const char *filename);
 PetscErrorCode minmax_elems_across_mpis(DM da, int *min, int *max);
 
-PetscErrorCode set_bc(int time_step, Vec u);
+PetscErrorCode apply_bc_on_u(int time_step, Vec u);
 PetscErrorCode bc_apply_on_u_bending(double U, Vec u);
-PetscErrorCode bc_apply_on_jac_bending(Mat A);
-PetscErrorCode bc_apply_on_res_bending(Vec b);
+
+PetscErrorCode apply_bc_on_jac(Mat A);
+PetscErrorCode bc_apply_on_u_bending(double U, Vec u);
+
+PetscErrorCode apply_bc_on_res(Vec b);
 
 #endif

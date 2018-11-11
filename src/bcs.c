@@ -22,6 +22,24 @@
 #include "macroc.h"
 
 
+PetscErrorCode apply_bc_on_u(int time_step, Vec u)
+{
+	PetscErrorCode ierr;
+	PetscReal time = time_step * dt;
+
+	double U;
+	if(time < final_time / 2.)
+		U = U_MAX * (time / final_time);
+	else
+		U = U_MAX;
+
+	if (bc_type == BC_BENDING) {
+		ierr = bc_apply_on_u_bending(U, u);
+	}
+	return ierr;
+}
+
+
 PetscErrorCode bc_apply_on_u_bending(double U, Vec u)
 {
 	PetscErrorCode ierr;
@@ -93,7 +111,7 @@ PetscErrorCode bc_apply_on_u_bending(double U, Vec u)
 	return ierr;
 }
 
-PetscErrorCode bc_apply_on_jac_bending(Mat A)
+PetscErrorCode apply_bc_on_jac(Mat A)
 {
 	PetscErrorCode ierr;
 	PetscInt si, sj, sk;
@@ -161,7 +179,7 @@ PetscErrorCode bc_apply_on_jac_bending(Mat A)
 }
 
 
-PetscErrorCode bc_apply_on_res_bending(Vec b)
+PetscErrorCode apply_bc_on_res(Vec b)
 {
 	PetscErrorCode ierr;
 	PetscInt si, sj, sk;
