@@ -92,3 +92,72 @@ PetscErrorCode bc_apply_on_u_bending(double U, Vec u)
 	free(bc_vals);
 	return ierr;
 }
+
+PetscErrorCode bc_apply_on_jac_bending(Mat A)
+{
+	PetscErrorCode ierr;
+	PetscInt si, sj, sk;
+	PetscInt nx, ny, nz;
+	PetscInt M, N, P;
+	PetscInt i, j, k, d;
+	PetscInt nbcs = 0;
+	const PetscInt *g_idx;
+	PetscInt *rows;
+	ISLocalToGlobalMapping ltogm;
+
+	ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
+	ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
+	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
+
+	ierr = PetscMalloc1(ny * nz * DIM, &rows); CHKERRQ(ierr);
+
+	for (i = 0; i < ny * nz * DIM; ++i)
+		rows[i] = -1;
+
+	i = 0;
+	for (k = 0; k < nz; ++k) {
+		for (j = 0; j < ny; ++j) {
+			for (d = 0; d < DIM; ++d) {
+
+				PetscInt local_id = i + j * nx + k * nx * ny;
+				PetscInt index = (k * ny + j) * DIM + d;
+				rows[index] = g_idx[local_id * DIM + d];
+			}
+		}
+	}
+
+	nbcs = 0;
+	if (si == 0)
+		nbcs = ny * nz * DIM;
+
+	MatZeroRowsColumns(A, nbcs, rows, 1., NULL, NULL);
+
+	for (i = 0; i < ny * nz * DIM; ++i)
+		rows[i] = -1;
+
+	i = nx - 1;
+	for (k = 0; k < nz; ++k) {
+		for (j = 0; j < ny; ++j) {
+			for (d = 0; d < DIM; ++d) {
+
+				PetscInt local_id = i + j * nx + k * nx * ny;
+				PetscInt index = (k * ny + j) * DIM + d;
+				rows[index] = g_idx[local_id * DIM + d];
+			}
+		}
+	}
+
+	nbcs = 0;
+	if (si + nx == M)
+		nbcs = ny * nz * DIM;
+
+	MatZeroRowsColumns(A, nbcs, rows, 1., NULL, NULL);
+
+	//MatView(A, PETSC_VIEWER_DRAW_WORLD);
+
+	ierr = ISLocalToGlobalMappingRestoreIndices(ltogm, &g_idx); CHKERRQ(ierr);
+	PetscFree(rows);
+
+	return ierr;
+}

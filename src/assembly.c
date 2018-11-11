@@ -42,154 +42,96 @@ PetscErrorCode set_bc(int time_step, Vec u)
 
 PetscErrorCode set_strains()
 {
-    PetscErrorCode ierr;
-    PetscInt ie, nelem, npe, gpi;
-    PetscInt i, j, gp, n, d;
-    double strain[NVOI];
-    double u_e[NPE * DIM];
-    double B[NVOI][NPE * DIM];
+	PetscErrorCode ierr;
+	PetscInt ie, nelem, npe, gpi;
+	PetscInt i, j, gp, n, d;
+	double strain[NVOI];
+	double u_e[NPE * DIM];
+	double B[NVOI][NPE * DIM];
 
-    Vec u_loc;
-    PetscScalar *u_arr;
-    const PetscInt *eix;
-    ierr = DMGetLocalVector(da, &u_loc); CHKERRQ(ierr);
-    ierr = VecZeroEntries(u_loc); CHKERRQ(ierr);
-    ierr = VecGetArray(u_loc, &u_arr);CHKERRQ(ierr);
-    ierr = DMGlobalToLocalBegin(da, u, INSERT_VALUES, u_loc); CHKERRQ(ierr);
-    ierr = DMGlobalToLocalEnd(da, u, INSERT_VALUES, u_loc); CHKERRQ(ierr);
-    ierr = DMDAGetElements(da, &nelem, &npe, &eix); CHKERRQ(ierr);
+	Vec u_loc;
+	PetscScalar *u_arr;
+	const PetscInt *eix;
+	ierr = DMGetLocalVector(da, &u_loc); CHKERRQ(ierr);
+	ierr = VecZeroEntries(u_loc); CHKERRQ(ierr);
+	ierr = VecGetArray(u_loc, &u_arr);CHKERRQ(ierr);
+	ierr = DMGlobalToLocalBegin(da, u, INSERT_VALUES, u_loc); CHKERRQ(ierr);
+	ierr = DMGlobalToLocalEnd(da, u, INSERT_VALUES, u_loc); CHKERRQ(ierr);
+	ierr = DMDAGetElements(da, &nelem, &npe, &eix); CHKERRQ(ierr);
 
-    for(ie = 0; ie < nelem; ++ie) {
+	for(ie = 0; ie < nelem; ++ie) {
 
-        for(n = 0; n < NPE; ++n)
-            for(d = 0; d < DIM; ++d)
-                u_e[n * DIM + d] = u_arr[eix[ie * NPE + n] * DIM + d];
+		for(n = 0; n < NPE; ++n)
+			for(d = 0; d < DIM; ++d)
+				u_e[n * DIM + d] = u_arr[eix[ie * NPE + n] * DIM + d];
 
-        for(gp = 0; gp < NGP; ++gp) {
+		for(gp = 0; gp < NGP; ++gp) {
 
-            calc_B(gp, B);
-            memset(strain, 0., NVOI * sizeof(double));
-            for(i = 0; i < NVOI; ++i)
-                for(j = 0; j < NPE * DIM; ++j)
-                    strain[i] += B[i][j] * u_e[j];
+			calc_B(gp, B);
+			memset(strain, 0., NVOI * sizeof(double));
+			for(i = 0; i < NVOI; ++i)
+				for(j = 0; j < NPE * DIM; ++j)
+					strain[i] += B[i][j] * u_e[j];
 
-            gpi = ie * NGP + gp;
-            micropp_C_set_strain3(gpi, strain);
-        }
-    }
+			gpi = ie * NGP + gp;
+			micropp_C_set_strain3(gpi, strain);
+		}
+	}
 
-    ierr = VecRestoreArray(u_loc, &u_arr); CHKERRQ(ierr);
-    ierr = VecDestroy(&u_loc); CHKERRQ(ierr);
-    return ierr;
+	ierr = VecRestoreArray(u_loc, &u_arr); CHKERRQ(ierr);
+	ierr = VecDestroy(&u_loc); CHKERRQ(ierr);
+	return ierr;
 }
 
 
 int assembly_jac(Mat A)
 {
-    PetscErrorCode ierr;
-    PetscInt ie, nelem;
-    PetscInt n, d, gp, gpi, npe;
-    PetscInt ix[NPE * DIM];
-    PetscInt i, j, k, l;
-    double ctan[NVOI * NVOI];
-    double Ae[NPE * DIM * NPE * DIM];
-    double B[NVOI][NPE * DIM];
+	PetscErrorCode ierr;
+	PetscInt ie, nelem;
+	PetscInt n, d, gp, gpi, npe;
+	PetscInt ix[NPE * DIM];
+	PetscInt i, j, k, l;
+	double ctan[NVOI * NVOI];
+	double Ae[NPE * DIM * NPE * DIM];
+	double B[NVOI][NPE * DIM];
 
-    ierr = MatZeroEntries(A); CHKERRQ(ierr);
+	ierr = MatZeroEntries(A); CHKERRQ(ierr);
 
-    const PetscInt *eix;
-    ierr = DMDAGetElements(da, &nelem, &npe, &eix); CHKERRQ(ierr);
+	const PetscInt *eix;
+	ierr = DMDAGetElements(da, &nelem, &npe, &eix); CHKERRQ(ierr);
 
-    for(ie = 0; ie < nelem; ++ie) {
+	for(ie = 0; ie < nelem; ++ie) {
 
-        memset(Ae, 0., NPE * DIM * NPE * DIM * sizeof(double));
-        for(gp = 0; gp < NGP; ++gp) {
+		memset(Ae, 0., NPE * DIM * NPE * DIM * sizeof(double));
+		for(gp = 0; gp < NGP; ++gp) {
 
-            calc_B(gp, B);
-            gpi = ie * NGP + gp;
-            micropp_C_get_ctan3(gpi, ctan);
+			calc_B(gp, B);
+			gpi = ie * NGP + gp;
+			micropp_C_get_ctan3(gpi, ctan);
 
-            for (i = 0; i < NPE * DIM; ++i)
-                for (j = 0; j < NPE * DIM; ++j)
-                    for (k = 0; k < NVOI; ++k)
-                        for (l = 0; l < NVOI; ++l)
-                            Ae[NPE * DIM * i + j] +=
-                                B[k][i] * ctan[k * NVOI + l] * B[l][j] * wg;
+			for (i = 0; i < NPE * DIM; ++i)
+				for (j = 0; j < NPE * DIM; ++j)
+					for (k = 0; k < NVOI; ++k)
+						for (l = 0; l < NVOI; ++l)
+							Ae[NPE * DIM * i + j] +=
+								B[k][i] * ctan[k * NVOI + l] * B[l][j] * wg;
 
-        }
-        for(n = 0; n < NPE; ++n)
-            for(d = 0; d < DIM; ++d)
-                ix[n * DIM + d] = eix[ie * NPE + n] * DIM + d;
+		}
+		for(n = 0; n < NPE; ++n)
+			for(d = 0; d < DIM; ++d)
+				ix[n * DIM + d] = eix[ie * NPE + n] * DIM + d;
 
-        ierr = MatSetValuesLocal(A, NPE * DIM, ix, NPE * DIM, ix, Ae,
-                                 ADD_VALUES); CHKERRQ(ierr);
-    }
-    ierr = MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
-    ierr = MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+		ierr = MatSetValuesLocal(A, NPE * DIM, ix, NPE * DIM, ix, Ae,
+					 ADD_VALUES); CHKERRQ(ierr);
+	}
+	ierr = MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+	ierr = MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
 
-    /* Boundary Conditions */
-    PetscInt si, sj, sk;
-    PetscInt nx, ny, nz;
-    PetscInt M, N, P;
-    PetscInt nbcs = 0;
-    const PetscInt *g_idx;
-    PetscInt *rows;
-    ISLocalToGlobalMapping ltogm;
+	if (bc_type == BC_BENDING) {
+		ierr = bc_apply_on_jac_bending(A);
+	}
 
-    ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
-    ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
-    ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-    ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
-
-    ierr = PetscMalloc1(ny * nz * DIM, &rows); CHKERRQ(ierr);
-
-    for (i = 0; i < ny * nz * DIM; ++i)
-        rows[i] = -1;
-
-    i = 0;
-    for (k = 0; k < nz; ++k) {
-        for (j = 0; j < ny; ++j) {
-            for (d = 0; d < DIM; ++d) {
-
-                PetscInt local_id = i + j * nx + k * nx * ny;
-                PetscInt index = (k * ny + j) * DIM + d;
-                rows[index] = g_idx[local_id * DIM + d];
-            }
-        }
-    }
-
-    nbcs = 0;
-    if (si == 0)
-        nbcs = ny * nz * DIM;
-
-    MatZeroRowsColumns(A, nbcs, rows, 1., NULL, NULL);
-
-    for (i = 0; i < ny * nz * DIM; ++i)
-        rows[i] = -1;
-
-    i = nx - 1;
-    for (k = 0; k < nz; ++k) {
-        for (j = 0; j < ny; ++j) {
-            for (d = 0; d < DIM; ++d) {
-
-                PetscInt local_id = i + j * nx + k * nx * ny;
-                PetscInt index = (k * ny + j) * DIM + d;
-                rows[index] = g_idx[local_id * DIM + d];
-            }
-        }
-    }
-
-    nbcs = 0;
-    if (si + nx == M)
-        nbcs = ny * nz * DIM;
-
-    MatZeroRowsColumns(A, nbcs, rows, 1., NULL, NULL);
-
-    //MatView(A, PETSC_VIEWER_DRAW_WORLD);
-
-    ierr = ISLocalToGlobalMappingRestoreIndices(ltogm, &g_idx); CHKERRQ(ierr);
-    PetscFree(rows);
-    return ierr;
+	return ierr;
 }
 
 
