@@ -17,3 +17,5 @@ foreach (testfile ${testsources})
   add_executable(${testname} ${testfile})
   target_link_libraries(${testname} ${PETSC_LIB})
 endforeach ()
+
+add_test(NAME test_coupling_small_1 COMMAND macroc -da_grid_x 3 -da_grid_y 3 -da_grid_z 3 -ts 2 > test_coupling_small_1.out)
