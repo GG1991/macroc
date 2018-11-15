@@ -82,7 +82,7 @@ ctest --VV -O output_stable.dat
 Then in the file `output_stable.dat` the stable reference output would have be written for all the tests cases. Finally after doing modifications if it is necessary run the tests cases and compare the solution running the same command but changing the output file name, for example:
 
 ```bash
-ctest --VV -O output_develop.dat
+ctest -VV -O output_develop.dat
 ```
 
 You can compare the solution using Linux tools like `diff` or `vimdiff`.
