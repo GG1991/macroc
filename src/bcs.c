@@ -60,46 +60,56 @@ PetscErrorCode bc_apply_on_u_bending(double U, Vec u)
 	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
 
-	ix = malloc(ny * nz * DIM * sizeof(PetscInt));
-	bc_vals = malloc(ny * nz * DIM * sizeof(PetscReal));
+	nbcs = 2 * ny * nz * DIM;
+	ix = malloc(nbcs * sizeof(PetscInt));
+	bc_vals = malloc(nbcs * sizeof(PetscReal));
+	for (i = 0; i < nbcs; ++i)
+		ix[i] = -1;
 
+	PetscInt index = 0;
+	if (si == 0) {
 	i = 0; /* X = 0 */
 	for (k = 0; k < nz; ++k) {
 		for (j = 0; j < ny; ++j) {
 			for (d = 0; d < DIM; ++d) {
 
 				PetscInt local_id = i + j * nx + k * nx * ny;
-				PetscInt index = (k * ny + j) * DIM + d;
+//				PetscInt index = (k * ny + j) * DIM + d;
 
 				ix[index] = g_idx[local_id * DIM + d];
 				bc_vals[index] =  0.;
+				index ++;
 			}
 		}
 	}
+	}
 
-	nbcs = 0;
-	if (si == 0)
-		nbcs = ny * nz * DIM;
+//	nbcs = 0;
+//	if (si == 0)
+//	nbcs = ny * nz * DIM;
 
-	ierr = VecSetValues(u, nbcs, ix, bc_vals, INSERT_VALUES); CHKERRQ(ierr);
+//	ierr = VecSetValues(u, nbcs, ix, bc_vals, INSERT_VALUES); CHKERRQ(ierr);
 
+	if (si + nx == M) {
 	i = nx - 1; /* X = LX */
 	for (k = 0; k < nz; ++k) {
 		for (j = 0; j < ny; ++j) {
 			for (d = 0; d < DIM; ++d) {
 
 				PetscInt local_id = i + j * nx + k * nx * ny;
-				PetscInt index = (k * ny + j) * DIM + d;
+//				PetscInt index = (k * ny + j) * DIM + d;
 
 				ix[index] = g_idx[local_id * DIM + d];
 				bc_vals[index] = (d == 1) ? U : 0.;
+				index ++;
 			}
 		}
 	}
+	}
 
-	nbcs = 0;
-	if (si + nx == M)
-		nbcs = ny * nz * DIM;
+//	nbcs = 0;
+//	if (si + nx == M)
+//		nbcs = ny * nz * DIM;
 
 	ierr = VecSetValues(u, nbcs, ix, bc_vals, INSERT_VALUES); CHKERRQ(ierr);
 	ierr = VecAssemblyBegin(u); CHKERRQ(ierr);
