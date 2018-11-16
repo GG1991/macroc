@@ -75,6 +75,7 @@ PetscInt vtu_freq;
 PetscInt newton_max_its;
 PetscInt bc_type;
 PetscInt *index_dirichlet;
+PetscInt nbcs;
 
 DM da;
 PC pc;

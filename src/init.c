@@ -129,6 +129,7 @@ PetscErrorCode init()
                 "Min : %d Max : %d Unbalance (Max - Min) / Max = %3.1lf %\n",
                 min, max, 1. * (max - min) / (1. * max) * 100.);
 
+    ierr = bc_init(da, &index_dirichlet, &nbcs);
 
     // Initializes <micro> declared in <micropp_c_wrapper.h>
     int ngpl = nex * ney * nez * NGP;
@@ -152,6 +153,9 @@ PetscErrorCode finish()
     ierr = VecDestroy(&b); CHKERRQ(ierr);
     ierr = VecDestroy(&du); CHKERRQ(ierr);
     ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
+
+    ierr = bc_finish(index_dirichlet); CHKERRQ(ierr);
+
     ierr = PetscFinalize();
     return ierr;
 }
