@@ -114,66 +114,7 @@ PetscErrorCode bc_apply_on_u_bending(double U, Vec u)
 PetscErrorCode apply_bc_on_jac(Mat A)
 {
 	PetscErrorCode ierr;
-	PetscInt si, sj, sk;
-	PetscInt nx, ny, nz;
-	PetscInt M, N, P;
-	PetscInt i, j, k, d;
-	PetscInt nbcs = 0;
-	const PetscInt *g_idx;
-	PetscInt *rows;
-	ISLocalToGlobalMapping ltogm;
-
-	ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
-	ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
-	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
-
-	ierr = PetscMalloc1(ny * nz * DIM, &rows); CHKERRQ(ierr);
-
-	for (i = 0; i < ny * nz * DIM; ++i)
-		rows[i] = -1;
-
-	i = 0;
-	for (k = 0; k < nz; ++k) {
-		for (j = 0; j < ny; ++j) {
-			for (d = 0; d < DIM; ++d) {
-
-				PetscInt local_id = i + j * nx + k * nx * ny;
-				PetscInt index = (k * ny + j) * DIM + d;
-				rows[index] = g_idx[local_id * DIM + d];
-			}
-		}
-	}
-
-	nbcs = 0;
-	if (si == 0)
-		nbcs = ny * nz * DIM;
-
-	MatZeroRowsColumns(A, nbcs, rows, 1., NULL, NULL);
-
-	for (i = 0; i < ny * nz * DIM; ++i)
-		rows[i] = -1;
-
-	i = nx - 1;
-	for (k = 0; k < nz; ++k) {
-		for (j = 0; j < ny; ++j) {
-			for (d = 0; d < DIM; ++d) {
-
-				PetscInt local_id = i + j * nx + k * nx * ny;
-				PetscInt index = (k * ny + j) * DIM + d;
-				rows[index] = g_idx[local_id * DIM + d];
-			}
-		}
-	}
-
-	nbcs = 0;
-	if (si + nx == M)
-		nbcs = ny * nz * DIM;
-
-	MatZeroRowsColumns(A, nbcs, rows, 1., NULL, NULL);
-
-	ierr = ISLocalToGlobalMappingRestoreIndices(ltogm, &g_idx); CHKERRQ(ierr);
-	PetscFree(rows);
+	MatZeroRowsColumns(A, nbcs_positive, index_dirichlet_positive, 1., NULL, NULL);
 
 	return ierr;
 }
@@ -193,12 +134,28 @@ PetscErrorCode apply_bc_on_res(Vec b)
 }
 
 
-PetscErrorCode bc_init(DM da, PetscInt **index_dirichlet, PetscInt *nbcs)
+PetscErrorCode bc_init(DM da, PetscInt **_index_dirichlet, PetscInt *_nbcs, PetscInt **_index_dirichlet_positive, PetscInt *_nbcs_positive)
 {
 	PetscErrorCode ierr = 0;
 	if (bc_type == BC_BENDING) {
-		ierr = bc_init_bending(da, index_dirichlet, nbcs);
+		ierr = bc_init_bending(da, _index_dirichlet, _nbcs);
 	}
+	PetscInt i, nbcs, *index_dirichlet, *index_dirichlet_positive, nbcs_positive = 0;
+	nbcs = *_nbcs;
+	index_dirichlet = *_index_dirichlet;
+	for (i = 0; i < nbcs; ++i)
+		if (index_dirichlet[i] >= 0)
+			nbcs_positive ++;
+
+	index_dirichlet_positive = malloc(nbcs_positive * sizeof(PetscInt));
+
+	for (i = 0; i < nbcs; ++i)
+		if (index_dirichlet[i] >= 0)
+			index_dirichlet_positive[i] = index_dirichlet[i];
+
+	*_nbcs_positive = nbcs_positive;
+	*_index_dirichlet_positive = index_dirichlet_positive;
+
 	return ierr;
 }
 
@@ -266,6 +223,7 @@ PetscErrorCode bc_finish(PetscInt *index_dirichlet)
 	PetscErrorCode ierr = 0;
 
 	free(index_dirichlet);
+	free(index_dirichlet_positive);
 
 	return ierr;
 }
