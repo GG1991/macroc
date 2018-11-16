@@ -182,61 +182,14 @@ PetscErrorCode apply_bc_on_jac(Mat A)
 PetscErrorCode apply_bc_on_res(Vec b)
 {
 	PetscErrorCode ierr;
-	PetscInt si, sj, sk;
-	PetscInt nx, ny, nz;
-	PetscInt i, j, k, d;
-	PetscInt M, N, P;
-	PetscInt nbcs = 0;
-	ISLocalToGlobalMapping ltogm;
-	const PetscInt *g_idx;
-	ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
-	ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
 
-	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
+	PetscReal *zeros = calloc(nbcs, sizeof(PetscReal));
 
-	PetscInt *rows = malloc(ny * nz * DIM * sizeof(PetscInt));
-	double *zeros = calloc(ny * nz * DIM, sizeof(double));
-
-	i = 0;
-	for (k = 0; k < nz; ++k) {
-		for (j = 0; j < ny; ++j) {
-			for (d = 0; d < DIM; ++d) {
-
-				PetscInt local_id = i + j * nx + k * nx * ny;
-				PetscInt index = (k * ny + j) * DIM + d;
-				rows[index] = g_idx[local_id * DIM + d];
-			}
-		}
-	}
-
-	nbcs = 0;
-	if (si == 0)
-		nbcs = ny * nz * DIM;
-
-	ierr = VecSetValues(b, nbcs, rows, zeros, INSERT_VALUES); CHKERRQ(ierr);
-
-	i = nx - 1;
-	for (k = 0; k < nz; ++k) {
-		for (j = 0; j < ny; ++j) {
-			for (d = 0; d < DIM; ++d) {
-
-				PetscInt local_id = i + j * nx + k * nx * ny;
-				PetscInt index = (k * ny + j) * DIM + d;
-				rows[index] = g_idx[local_id * DIM + d];
-			}
-		}
-	}
-
-	nbcs = 0;
-	if (si + nx == M)
-		nbcs = ny * nz * DIM;
-
-	ierr = VecSetValues(b, nbcs, rows, zeros, INSERT_VALUES); CHKERRQ(ierr);
+	ierr = VecSetValues(b, nbcs, index_dirichlet, zeros, INSERT_VALUES); CHKERRQ(ierr);
 	ierr = VecAssemblyBegin(b);CHKERRQ(ierr);
 	ierr = VecAssemblyEnd(b);CHKERRQ(ierr);
 
-	free(rows);
+	free(zeros);
 }
 
 
