@@ -18,6 +18,15 @@ foreach (testfile ${testsources})
   target_link_libraries(${testname} ${PETSC_LIB})
 endforeach ()
 
+add_test(NAME test_coupling_small_parall_1 COMMAND mpirun -np 1 ../macroc -da_grid_x 5 -da_grid_y 2 -da_grid_z 2 -ts 5)
+add_test(NAME test_coupling_small_parall_2 COMMAND mpirun -np 2 ../macroc -da_grid_x 5 -da_grid_y 2 -da_grid_z 2 -ts 5)
+add_test(NAME test_coupling_small_parall_3 COMMAND mpirun -np 3 ../macroc -da_grid_x 5 -da_grid_y 2 -da_grid_z 2 -ts 5)
+add_test(NAME test_coupling_small_parall_4 COMMAND mpirun -np 4 ../macroc -da_grid_x 5 -da_grid_y 2 -da_grid_z 2 -ts 5)
+
+add_test(NAME test_coupling_medium_parall_5 COMMAND mpirun -np 8 ../macroc -da_grid_x 5 -da_grid_y 3 -da_grid_z 3 -ts 5)
+add_test(NAME test_coupling_medium_parall_6 COMMAND mpirun -np 8 ../macroc -da_grid_x 5 -da_grid_y 3 -da_grid_z 4 -ts 5)
+add_test(NAME test_coupling_medium_parall_7 COMMAND mpirun -np 8 ../macroc -da_grid_x 5 -da_grid_y 3 -da_grid_z 5 -ts 5)
+
 add_test(NAME test_coupling_small_1 COMMAND macroc -da_grid_x 3 -da_grid_y 3 -da_grid_z 3 -ts 5)
 add_test(NAME test_coupling_small_2 COMMAND macroc -da_grid_x 4 -da_grid_y 4 -da_grid_z 4 -ts 5)
 add_test(NAME test_coupling_small_3 COMMAND macroc -da_grid_x 5 -da_grid_y 2 -da_grid_z 2 -ts 5)
