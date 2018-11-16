@@ -36,6 +36,8 @@ PetscErrorCode apply_bc_on_u(int time_step, Vec u)
 	if (bc_type == BC_BENDING) {
 		ierr = bc_apply_on_u_bending(U, u);
 	}
+
+	//VecView(u, PETSC_VIEWER_STDOUT_WORLD);
 	return ierr;
 }
 
@@ -104,12 +106,11 @@ PetscErrorCode bc_apply_on_u_bending(double U, Vec u)
 	ierr = VecAssemblyEnd(u); CHKERRQ(ierr);
 	ierr = ISLocalToGlobalMappingRestoreIndices(ltogm, &g_idx); CHKERRQ(ierr);
 
-	//VecView(u, PETSC_VIEWER_STDOUT_WORLD);
-
 	free(ix);
 	free(bc_vals);
 	return ierr;
 }
+
 
 PetscErrorCode apply_bc_on_jac(Mat A)
 {
