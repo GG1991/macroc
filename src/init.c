@@ -70,6 +70,9 @@ PetscErrorCode init()
     ierr = DMCreateGlobalVector(da, &b); CHKERRQ(ierr);
     ierr = DMCreateGlobalVector(da, &du); CHKERRQ(ierr);
 
+    ierr = VecSetOption(u, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE);
+    ierr = VecSetOption(b, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE);
+
     ierr = VecZeroEntries(u); CHKERRQ(ierr);
     ierr = VecZeroEntries(b); CHKERRQ(ierr);
     ierr = VecZeroEntries(du); CHKERRQ(ierr);
