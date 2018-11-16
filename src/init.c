@@ -129,7 +129,7 @@ PetscErrorCode init()
                 "Min : %d Max : %d Unbalance (Max - Min) / Max = %3.1lf %\n",
                 min, max, 1. * (max - min) / (1. * max) * 100.);
 
-    ierr = bc_init(da, &index_dirichlet, &nbcs);
+    ierr = bc_init(da, &index_dirichlet, &nbcs, &index_dirichlet_positive, &nbcs_positive);
 
     // Initializes <micro> declared in <micropp_c_wrapper.h>
     int ngpl = nex * ney * nez * NGP;
