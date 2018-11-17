@@ -22,41 +22,41 @@
 
 PetscErrorCode minmax_elems_across_mpis(DM da, int *min, int *max) {
 
-    PetscErrorCode ierr;
-    int _min, _max;
-    PetscInt nex, ney, nez;
-    ierr = DMDAGetElementsSizes(da, &nex, &ney, &nez); CHKERRQ(ierr);
-    int nelem = nex * ney * nez;
+	PetscErrorCode ierr;
+	int _min, _max;
+	PetscInt nex, ney, nez;
+	ierr = DMDAGetElementsSizes(da, &nex, &ney, &nez); CHKERRQ(ierr);
+	int nelem = nex * ney * nez;
 
-    int *nelems_all = NULL;
+	int *nelems_all = NULL;
 
-    int rank, nproc;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+	int rank, nproc;
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &nproc);
 
-    if (rank == 0)
-        nelems_all = malloc(nproc * sizeof(int));
+	if (rank == 0)
+		nelems_all = malloc(nproc * sizeof(int));
 
-    MPI_Gather(&nelem, 1, MPI_INT, nelems_all, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Gather(&nelem, 1, MPI_INT, nelems_all, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-    if (rank == 0) {
-        _min = nelems_all[0];
-        _max = nelems_all[0];
-        int i;
-        for (i = 1; i < nproc; ++i) {
-            if (nelems_all[i] < _min)
-                _min = nelems_all[i];
+	if (rank == 0) {
+		_min = nelems_all[0];
+		_max = nelems_all[0];
+		int i;
+		for (i = 1; i < nproc; ++i) {
+			if (nelems_all[i] < _min)
+				_min = nelems_all[i];
 
-            if (nelems_all[i] > _max)
-                _max = nelems_all[i];
-        }
-    }
+			if (nelems_all[i] > _max)
+				_max = nelems_all[i];
+		}
+	}
 
-    MPI_Bcast(&_min, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&_max, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&_min, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&_max, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-    *min = _min;
-    *max = _max;
+	*min = _min;
+	*max = _max;
 
-    return ierr;
+	return ierr;
 }

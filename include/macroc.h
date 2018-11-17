@@ -56,14 +56,14 @@ static char help[] = "FE code to solve macroscopic problems with PETSc.\n";
 enum {BC_BENDING, BC_CIRCLE};
 
 static double xg[8][3] = {
-    { -CONSTXG, -CONSTXG, -CONSTXG },
-    { +CONSTXG, -CONSTXG, -CONSTXG },
-    { +CONSTXG, +CONSTXG, -CONSTXG },
-    { -CONSTXG, +CONSTXG, -CONSTXG },
-    { -CONSTXG, -CONSTXG, +CONSTXG },
-    { +CONSTXG, -CONSTXG, +CONSTXG },
-    { +CONSTXG, +CONSTXG, +CONSTXG },
-    { -CONSTXG, +CONSTXG, +CONSTXG } };
+	{ -CONSTXG, -CONSTXG, -CONSTXG },
+	{ +CONSTXG, -CONSTXG, -CONSTXG },
+	{ +CONSTXG, +CONSTXG, -CONSTXG },
+	{ -CONSTXG, +CONSTXG, -CONSTXG },
+	{ -CONSTXG, -CONSTXG, +CONSTXG },
+	{ +CONSTXG, -CONSTXG, +CONSTXG },
+	{ +CONSTXG, +CONSTXG, +CONSTXG },
+	{ -CONSTXG, +CONSTXG, +CONSTXG } };
 
 double lx, ly, lz, dx, dy, dz;
 double wg;
