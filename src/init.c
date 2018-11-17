@@ -85,6 +85,7 @@ PetscErrorCode init()
     dy = ly / (N - 1);
     dz = lz / (P - 1);
     wg = dx * dy * dz / NPE;
+    rad = 1.;
 
     KSPType ksptype;
     PetscReal rtol, abstol, dtol;
