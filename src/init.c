@@ -55,7 +55,7 @@ PetscErrorCode init()
     PetscOptionsGetInt(NULL, NULL, "-micro_n", &micro_n, NULL);
     PetscOptionsGetInt(NULL, NULL, "-vtu_freq", &vtu_freq, NULL);
     PetscOptionsGetInt(NULL, NULL, "-new_its", &newton_max_its, NULL);
-    PetscOptionsGetInt(NULL, NULL, "-bc_type", &newton_max_its, NULL);
+    PetscOptionsGetInt(NULL, NULL, "-bc_type", &bc_type, NULL);
 
     DMBoundaryType bx = DM_BOUNDARY_NONE, by = DM_BOUNDARY_NONE,
                    bz = DM_BOUNDARY_NONE;
