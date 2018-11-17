@@ -68,30 +68,17 @@ PetscErrorCode bc_apply_on_u_bending(double U, Vec u)
 	bc_vals = malloc(nbcs * sizeof(PetscReal));
 
 	PetscInt index = 0;
-	if (si == 0) { /* X = 0 */
-		for (k = 0; k < nz; ++k) {
-			for (j = 0; j < ny; ++j) {
-				for (d = 0; d < DIM; ++d) {
+	if (si == 0) /* X = 0 */
+		for (k = 0; k < nz; ++k)
+			for (j = 0; j < ny; ++j)
+				for (d = 0; d < DIM; ++d)
+					bc_vals[index++] =  0.;
 
-					bc_vals[index] =  0.;
-					index ++;
-
-				}
-			}
-		}
-	}
-
-
-	if (si + nx == M) { /* X = LX */
-		for (k = 0; k < nz; ++k) {
-			for (j = 0; j < ny; ++j) {
-				for (d = 0; d < DIM; ++d) {
-					bc_vals[index] = (d == 1) ? U : 0.;
-					index ++;
-				}
-			}
-		}
-	}
+	if (si + nx == M) /* X = LX */
+		for (k = 0; k < nz; ++k)
+			for (j = 0; j < ny; ++j)
+				for (d = 0; d < DIM; ++d)
+					bc_vals[index++] = (d == 1) ? U : 0.;
 
 	ierr = VecSetValues(u, nbcs, index_dirichlet, bc_vals, INSERT_VALUES); CHKERRQ(ierr);
 	ierr = VecAssemblyBegin(u); CHKERRQ(ierr);
@@ -122,27 +109,35 @@ PetscErrorCode bc_apply_on_u_circle(double U, Vec u)
 	bc_vals = malloc(nbcs * sizeof(PetscReal));
 
 	PetscInt index = 0;
-	if (si == 0 && sj == 0) { /* Y = 0 and borders */
+
+	if (si == 0 && sj == 0) /* X = 0 & Y = 0 (ALONG Z) */
+		for (k = 0; k < nz; ++k)
+			for (d = 0; d < DIM; ++d)
+				bc_vals[index++] =  0.;
+
+	if (si + nx == M && sj == 0) /* X = LX & Y = 0 (ALONG Z) */
+		for (k = 0; k < nz; ++k)
+			for (d = 0; d < DIM; ++d)
+				bc_vals[index++] =  0.;
+
+	if (sk == 0 && sj == 0) /* Z = 0 & Y = 0 (ALONG X) */
+		for (i = 1; i < nx - 1; ++i)
+			for (d = 0; d < DIM; ++d)
+				bc_vals[index++] =  0.;
+
+	if (sk + nz == P && sj == 0) /* Z = LZ & Y = 0 (ALONG X) */
+		for (i = 1; i < nx - 1; ++i)
+			for (d = 0; d < DIM; ++d)
+				bc_vals[index++] =  0.;
+
+
+	for (i = 0; i < nx; ++i) {
 		for (k = 0; k < nz; ++k) {
-			for (j = 0; j < ny; ++j) {
-				for (d = 0; d < DIM; ++d) {
-
-					bc_vals[index] =  0.;
-					index ++;
-
-				}
-			}
-		}
-	}
-
-
-	if (si + nx == M) { /* X = LX */
-		for (k = 0; k < nz; ++k) {
-			for (j = 0; j < ny; ++j) {
-				for (d = 0; d < DIM; ++d) {
-					bc_vals[index] = (d == 1) ? U : 0.;
-					index ++;
-				}
+			if (sj + ny == N) { /* Y = LY (INSIDE CIRCLE) */
+				double x = (si + i) * dx + dx / 2.;
+				double z = (sk + k) * dz + dz / 2.;
+				if (x * x + z * z < rad * rad)
+					bc_vals[index++] = U;
 			}
 		}
 	}
@@ -167,7 +162,13 @@ PetscErrorCode bc_init(DM da, PetscInt **_index_dirichlet, PetscInt *_nbcs,
 	PetscInt *index_dirichlet_positive, nbcs_positive;
 
 	if (bc_type == BC_BENDING) {
+
 		ierr = bc_init_bending(da, _index_dirichlet, _nbcs);
+
+	} else if (bc_type == BC_CIRCLE) {
+
+		ierr = bc_init_circle(da, _index_dirichlet, _nbcs);
+
 	}
 	nbcs = *_nbcs;
 	index_dirichlet = *_index_dirichlet;
@@ -225,8 +226,7 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet,
 			for (j = 0; j < ny; ++j) {
 				for (d = 0; d < DIM; ++d) {
 					PetscInt local_id = i + j * nx + k * nx * ny;
-					ix[index] = g_idx[local_id * DIM + d];
-					index ++;
+					ix[index++] = g_idx[local_id * DIM + d];
 				}
 			}
 		}
@@ -239,8 +239,64 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet,
 			for (j = 0; j < ny; ++j) {
 				for (d = 0; d < DIM; ++d) {
 					PetscInt local_id = i + j * nx + k * nx * ny;
-					ix[index] = g_idx[local_id * DIM + d];
-					index ++;
+					ix[index++] = g_idx[local_id * DIM + d];
+				}
+			}
+		}
+	}
+
+	*_index_dirichlet = ix;
+	*_nbcs = nbcs;
+	return ierr;
+}
+
+
+PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
+			       PetscInt *_nbcs)
+{
+	PetscErrorCode ierr;
+	PetscInt si, sj, sk;
+	PetscInt nx, ny, nz;
+	PetscInt i, j, k, d;
+	PetscInt M, N, P;
+	PetscInt nbcs;
+	PetscInt index = 0;
+	PetscInt *ix;
+
+	ISLocalToGlobalMapping ltogm;
+	const PetscInt *g_idx;
+	ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
+	ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
+
+	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
+
+	nbcs = 2 * ny * nz * DIM;
+
+	ix = malloc(nbcs * sizeof(PetscInt));
+	for (i = 0; i < nbcs; ++i)
+		ix[i] = -1;
+
+	if (si == 0) {
+		i = 0; /* X = 0 */
+		for (k = 0; k < nz; ++k) {
+			for (j = 0; j < ny; ++j) {
+				for (d = 0; d < DIM; ++d) {
+					PetscInt local_id = i + j * nx + k * nx * ny;
+					ix[index++] = g_idx[local_id * DIM + d];
+				}
+			}
+		}
+	}
+
+
+	if (si + nx == M) {
+		i = nx - 1; /* X = LX */
+		for (k = 0; k < nz; ++k) {
+			for (j = 0; j < ny; ++j) {
+				for (d = 0; d < DIM; ++d) {
+					PetscInt local_id = i + j * nx + k * nx * ny;
+					ix[index++] = g_idx[local_id * DIM + d];
 				}
 			}
 		}
