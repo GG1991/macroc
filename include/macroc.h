@@ -102,6 +102,7 @@ PetscErrorCode bc_apply_on_u_bending(double U, Vec u);
 
 PetscErrorCode apply_bc_on_jac(Mat A);
 PetscErrorCode bc_apply_on_u_bending(double U, Vec u);
+PetscErrorCode bc_apply_on_u_circle(double U, Vec u);
 
 PetscErrorCode apply_bc_on_res(Vec b);
 
