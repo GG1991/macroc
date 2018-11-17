@@ -44,6 +44,7 @@ PetscErrorCode init()
     vtu_freq = VTU_FREQ;
     newton_max_its = NEWTON_MAX_ITS;
     newton_min_tol = NEWTON_MIN_TOL;
+    bc_type = BC_BENDING;
 
     PetscOptionsGetReal(NULL, NULL, "-dt", &dt, NULL);
     PetscOptionsGetReal(NULL, NULL, "-lx", &lx, NULL);
@@ -54,6 +55,7 @@ PetscErrorCode init()
     PetscOptionsGetInt(NULL, NULL, "-micro_n", &micro_n, NULL);
     PetscOptionsGetInt(NULL, NULL, "-vtu_freq", &vtu_freq, NULL);
     PetscOptionsGetInt(NULL, NULL, "-new_its", &newton_max_its, NULL);
+    PetscOptionsGetInt(NULL, NULL, "-bc_type", &newton_max_its, NULL);
 
     DMBoundaryType bx = DM_BOUNDARY_NONE, by = DM_BOUNDARY_NONE,
                    bz = DM_BOUNDARY_NONE;
