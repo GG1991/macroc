@@ -74,6 +74,10 @@ PetscInt ts;
 PetscInt vtu_freq;
 PetscInt newton_max_its;
 PetscInt bc_type;
+PetscInt *index_dirichlet;
+PetscInt *index_dirichlet_positive;
+PetscInt nbcs;
+PetscInt nbcs_positive;
 
 DM da;
 PC pc;
@@ -100,5 +104,9 @@ PetscErrorCode apply_bc_on_jac(Mat A);
 PetscErrorCode bc_apply_on_u_bending(double U, Vec u);
 
 PetscErrorCode apply_bc_on_res(Vec b);
+
+PetscErrorCode bc_init(DM da, PetscInt **_index_dirichlet, PetscInt *_nbcs, PetscInt **_index_dirichlet_positive, PetscInt *_nbcs_positive);
+PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet, PetscInt *_nbcs);
+PetscErrorCode bc_finish(PetscInt *index_dirichlet);
 
 #endif
