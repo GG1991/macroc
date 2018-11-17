@@ -61,6 +61,7 @@ The mesh size and the processors in each direction are given by command line as:
 -vtu_freq <int> frequency of VTU plots (-1)
 -new_its <int> maximum number of Newton Iterations
 -new_tol <double> minimum tolerance of Newton residue
+-bc_type <int> Boundary Condition Type
 ```
 
 Examples

@@ -218,11 +218,11 @@ PetscErrorCode write_pvtu(const char file_prefix[])
 					strain_gp[i] += B[i][j] * u_e[j];
 
 			for(i = 0; i < NVOI; ++i)
-				strain[i] += strain_gp[i];
+				strain[i] += strain_gp[i] * wg;
 
 		}
 		for (i = 0; i < NVOI; ++i)
-			PetscFPrintf(PETSC_COMM_SELF, fp, "%lf\t", strain[i] / NGP);
+			PetscFPrintf(PETSC_COMM_SELF, fp, "%e\t", strain[i]);
 	}
 	PetscFPrintf(PETSC_COMM_SELF, fp, "\n</DataArray>\n");
 
@@ -235,11 +235,11 @@ PetscErrorCode write_pvtu(const char file_prefix[])
 			int gpi = e * NPE + gp;
 			micropp_C_get_stress3(gpi, stress_gp);
 			for (i = 0; i < NVOI; ++i)
-				stress[i] += stress_gp[i];
+				stress[i] += stress_gp[i] * wg;
 
 		}
 		for (i = 0; i < NVOI; ++i)
-			PetscFPrintf(PETSC_COMM_SELF, fp, "%lf\t", stress[i] / NGP);
+			PetscFPrintf(PETSC_COMM_SELF, fp, "%e\t", stress[i]);
 	}
 	PetscFPrintf(PETSC_COMM_SELF, fp, "\n</DataArray>\n");
 
