@@ -53,6 +53,8 @@ static char help[] = "FE code to solve macroscopic problems with PETSc.\n";
 
 #define CONSTXG        0.577350269189626
 
+enum {BC_BENDING, BC_CIRCLE};
+
 static double xg[8][3] = {
     { -CONSTXG, -CONSTXG, -CONSTXG },
     { +CONSTXG, -CONSTXG, -CONSTXG },
@@ -71,6 +73,11 @@ PetscReal newton_min_tol;
 PetscInt ts;
 PetscInt vtu_freq;
 PetscInt newton_max_its;
+PetscInt bc_type;
+PetscInt *index_dirichlet;
+PetscInt *index_dirichlet_positive;
+PetscInt nbcs;
+PetscInt nbcs_positive;
 
 DM da;
 PC pc;
@@ -80,7 +87,6 @@ Vec u, du, b;
 
 PetscErrorCode init();
 PetscErrorCode finish();
-PetscErrorCode set_bc(int time_step, Vec u);
 PetscErrorCode set_strains();
 PetscErrorCode assembly_jac(Mat A);
 PetscErrorCode assembly_res(Vec b);
@@ -90,5 +96,17 @@ void calc_B(int gp, double B[6][NPE * DIM]);
 
 PetscErrorCode write_pvtu(const char *filename);
 PetscErrorCode minmax_elems_across_mpis(DM da, int *min, int *max);
+
+PetscErrorCode apply_bc_on_u(int time_step, Vec u);
+PetscErrorCode bc_apply_on_u_bending(double U, Vec u);
+
+PetscErrorCode apply_bc_on_jac(Mat A);
+PetscErrorCode bc_apply_on_u_bending(double U, Vec u);
+
+PetscErrorCode apply_bc_on_res(Vec b);
+
+PetscErrorCode bc_init(DM da, PetscInt **_index_dirichlet, PetscInt *_nbcs, PetscInt **_index_dirichlet_positive, PetscInt *_nbcs_positive);
+PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet, PetscInt *_nbcs);
+PetscErrorCode bc_finish(PetscInt *index_dirichlet);
 
 #endif

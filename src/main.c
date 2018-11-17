@@ -41,7 +41,7 @@ int main(int argc,char **args)
     for(time_s = 0; time_s < ts; ++time_s) {
 
         PetscPrintf(PETSC_COMM_WORLD, "\n\nTime Step = %d\n", time_s);
-        ierr = set_bc(time_s, u);
+        ierr = apply_bc_on_u(time_s, u);
 
         newton_it = 0;
         while(newton_it < newton_max_its) {
