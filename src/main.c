@@ -24,63 +24,63 @@
 
 int main(int argc,char **args)
 {
-    PetscErrorCode ierr;
+	PetscErrorCode ierr;
 
-    ierr = PetscInitialize(&argc, &args, (char*)0, help); if(ierr) return ierr;
+	ierr = PetscInitialize(&argc, &args, (char*)0, help); if(ierr) return ierr;
 
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	int rank;
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    ierr = init();
+	ierr = init();
 
-    double t1, t2;
-    t1 = MPI_Wtime();
+	double t1, t2;
+	t1 = MPI_Wtime();
 
-    double norm;
-    int time_s, newton_it;
-    for(time_s = 0; time_s < ts; ++time_s) {
+	double norm;
+	int time_s, newton_it;
+	for(time_s = 0; time_s < ts; ++time_s) {
 
-        PetscPrintf(PETSC_COMM_WORLD, "\n\nTime Step = %d\n", time_s);
-        ierr = apply_bc_on_u(time_s, u);
+		PetscPrintf(PETSC_COMM_WORLD, "\n\nTime Step = %d\n", time_s);
+		ierr = apply_bc_on_u(time_s, u);
 
-        newton_it = 0;
-        while(newton_it < newton_max_its) {
+		newton_it = 0;
+		while(newton_it < newton_max_its) {
 
-            PetscPrintf(PETSC_COMM_WORLD, "\nNewton Iteration = %d\n", newton_it);
-            PetscPrintf(PETSC_COMM_WORLD, "Homogenizing MicroPP\n");
-            ierr = set_strains();
-            micropp_C_homogenize();
+			PetscPrintf(PETSC_COMM_WORLD, "\nNewton Iteration = %d\n", newton_it);
+			PetscPrintf(PETSC_COMM_WORLD, "Homogenizing MicroPP\n");
+			ierr = set_strains();
+			micropp_C_homogenize();
 
-            PetscPrintf(PETSC_COMM_WORLD, "Assemblying RHS\n");
+			PetscPrintf(PETSC_COMM_WORLD, "Assemblying RHS\n");
 
-            ierr = assembly_res(b);
-            ierr = VecNorm(b, NORM_2, &norm); CHKERRQ(ierr);
-            PetscPrintf(PETSC_COMM_WORLD, "|RES| = %e\n", norm);
-            if (norm < newton_min_tol) break;
+			ierr = assembly_res(b);
+			ierr = VecNorm(b, NORM_2, &norm); CHKERRQ(ierr);
+			PetscPrintf(PETSC_COMM_WORLD, "|RES| = %e\n", norm);
+			if (norm < newton_min_tol) break;
 
-            ierr = assembly_jac(A);
-            ierr = solve_Ax(ksp, b, du);
+			ierr = assembly_jac(A);
+			ierr = solve_Ax(ksp, b, du);
 
-            ierr = VecAXPY(u, 1., du); CHKERRQ(ierr);
+			ierr = VecAXPY(u, 1., du); CHKERRQ(ierr);
 
-            newton_it ++;
-        }
-        micropp_C_update_vars();
+			newton_it ++;
+		}
+		micropp_C_update_vars();
 
-        if (vtu_freq > 0 && time_s % vtu_freq == 0) {
+		if (vtu_freq > 0 && time_s % vtu_freq == 0) {
 
-            char file_prefix[PETSC_MAX_PATH_LEN];
-            ierr = PetscSNPrintf(file_prefix,
-                                 sizeof(file_prefix), "solution_%d",
-                                 time_s); CHKERRQ(ierr);
+			char file_prefix[PETSC_MAX_PATH_LEN];
+			ierr = PetscSNPrintf(file_prefix,
+					     sizeof(file_prefix), "solution_%d",
+					     time_s); CHKERRQ(ierr);
 
-            ierr = write_pvtu(file_prefix);
-        }
-    }
+			ierr = write_pvtu(file_prefix);
+		}
+	}
 
-    t2 = MPI_Wtime();
-    PetscPrintf(MPI_COMM_WORLD, "\nElapsed time : %f\n", t2 - t1);
+	t2 = MPI_Wtime();
+	PetscPrintf(MPI_COMM_WORLD, "\nElapsed time : %f\n", t2 - t1);
 
-    ierr = finish();
-    return ierr;
+	ierr = finish();
+	return ierr;
 }
