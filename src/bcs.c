@@ -203,7 +203,6 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet,
 	PetscInt i, j, k, d;
 	PetscInt M, N, P;
 	PetscInt nbcs;
-	PetscInt index = 0;
 	PetscInt *ix;
 
 	ISLocalToGlobalMapping ltogm;
@@ -219,6 +218,8 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet,
 	ix = malloc(nbcs * sizeof(PetscInt));
 	for (i = 0; i < nbcs; ++i)
 		ix[i] = -1;
+
+	PetscInt index = 0;
 
 	if (si == 0) {
 		i = 0; /* X = 0 */
@@ -260,7 +261,6 @@ PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
 	PetscInt i, j, k, d;
 	PetscInt M, N, P;
 	PetscInt nbcs;
-	PetscInt index = 0;
 	PetscInt *ix;
 
 	ISLocalToGlobalMapping ltogm;
@@ -271,30 +271,61 @@ PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
 	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
 
-	nbcs = 2 * ny * nz * DIM;
+	nbcs = (2 * nx + 2 * nz) * DIM + nx * nz;
 
 	ix = malloc(nbcs * sizeof(PetscInt));
 	for (i = 0; i < nbcs; ++i)
 		ix[i] = -1;
 
-	if (si == 0) {
-		i = 0; /* X = 0 */
+	PetscInt index = 0;
+
+	if (si == 0 && sj == 0) { /* X = 0 & Y = 0 (ALONG Z) */
+		i = 0;
+		j = 0;
 		for (k = 0; k < nz; ++k) {
-			for (j = 0; j < ny; ++j) {
-				for (d = 0; d < DIM; ++d) {
-					PetscInt local_id = i + j * nx + k * nx * ny;
-					ix[index++] = g_idx[local_id * DIM + d];
-				}
-			}
+			PetscInt local_id = i + j * nx + k * nx * ny;
+			for (d = 0; d < DIM; ++d)
+				ix[index++] = g_idx[local_id * DIM + d];
+		}
+	}
+
+	if (si + nx == M && sj == 0) { /* X = LX & Y = 0 (ALONG Z) */
+		i = nx - 1;
+		j = 0;
+		for (k = 0; k < nz; ++k) {
+			PetscInt local_id = i + j * nx + k * nx * ny;
+			for (d = 0; d < DIM; ++d)
+				ix[index++] = g_idx[local_id * DIM + d];
+		}
+	}
+
+	if (sk == 0 && sj == 0) { /* Z = 0 & Y = 0 (ALONG X) */
+		k = 0;
+		j = 0;
+		for (i = 1; i < nx - 1; ++i) {
+			PetscInt local_id = i + j * nx + k * nx * ny;
+			for (d = 0; d < DIM; ++d)
+				ix[index++] = g_idx[local_id * DIM + d];
+		}
+	}
+
+	if (sk + nz == P && sj == 0) { /* Z = LZ & Y = 0 (ALONG X) */
+		k = nz - 1;
+		j = 0;
+		for (i = 1; i < nx - 1; ++i) {
+			PetscInt local_id = i + j * nx + k * nx * ny;
+			for (d = 0; d < DIM; ++d)
+				ix[index++] = g_idx[local_id * DIM + d];
 		}
 	}
 
 
-	if (si + nx == M) {
-		i = nx - 1; /* X = LX */
+	for (i = 0; i < nx; ++i) {
 		for (k = 0; k < nz; ++k) {
-			for (j = 0; j < ny; ++j) {
-				for (d = 0; d < DIM; ++d) {
+			if (sj + ny == N) { /* Y = LY (INSIDE CIRCLE) */
+				double x = (si + i) * dx + dx / 2.;
+				double z = (sk + k) * dz + dz / 2.;
+				if (x * x + z * z < rad * rad) {
 					PetscInt local_id = i + j * nx + k * nx * ny;
 					ix[index++] = g_idx[local_id * DIM + d];
 				}
