@@ -111,38 +111,25 @@ PetscErrorCode bc_apply_on_u_bending(double U, Vec u)
 }
 
 
-PetscErrorCode apply_bc_on_jac(Mat A)
+PetscErrorCode bc_init(DM da, PetscInt **_index_dirichlet, PetscInt *_nbcs,
+		       PetscInt **_index_dirichlet_positive,
+		       PetscInt *_nbcs_positive)
 {
 	PetscErrorCode ierr;
-	MatZeroRowsColumns(A, nbcs_positive, index_dirichlet_positive, 1., NULL, NULL);
+	PetscInt i;
+	PetscInt nbcs, *index_dirichlet;
+	PetscInt *index_dirichlet_positive, nbcs_positive;
 
-	return ierr;
-}
-
-
-PetscErrorCode apply_bc_on_res(Vec b)
-{
-	PetscErrorCode ierr;
-
-	PetscReal *zeros = calloc(nbcs, sizeof(PetscReal));
-
-	ierr = VecSetValues(b, nbcs, index_dirichlet, zeros, INSERT_VALUES); CHKERRQ(ierr);
-	ierr = VecAssemblyBegin(b);CHKERRQ(ierr);
-	ierr = VecAssemblyEnd(b);CHKERRQ(ierr);
-
-	free(zeros);
-}
-
-
-PetscErrorCode bc_init(DM da, PetscInt **_index_dirichlet, PetscInt *_nbcs, PetscInt **_index_dirichlet_positive, PetscInt *_nbcs_positive)
-{
-	PetscErrorCode ierr = 0;
 	if (bc_type == BC_BENDING) {
 		ierr = bc_init_bending(da, _index_dirichlet, _nbcs);
 	}
-	PetscInt i, nbcs, *index_dirichlet, *index_dirichlet_positive, nbcs_positive = 0;
 	nbcs = *_nbcs;
 	index_dirichlet = *_index_dirichlet;
+
+	/* <nbcs_positive> and <index_dirichlet_positive> are used for
+	 * MatSetValues that does not acept negative indeces.
+	 */
+	nbcs_positive = 0;
 	for (i = 0; i < nbcs; ++i)
 		if (index_dirichlet[i] >= 0)
 			nbcs_positive ++;
@@ -160,7 +147,8 @@ PetscErrorCode bc_init(DM da, PetscInt **_index_dirichlet, PetscInt *_nbcs, Pets
 }
 
 
-PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet, PetscInt *_nbcs)
+PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet,
+			       PetscInt *_nbcs)
 {
 	PetscErrorCode ierr;
 	PetscInt si, sj, sk;
@@ -214,6 +202,30 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet, PetscInt *_nb
 
 	*_index_dirichlet = ix;
 	*_nbcs = nbcs;
+	return ierr;
+}
+
+
+PetscErrorCode apply_bc_on_jac(Mat A)
+{
+	PetscErrorCode ierr;
+	ierr = MatZeroRowsColumns(A, nbcs_positive, index_dirichlet_positive,
+				  1., NULL, NULL);
+	return ierr;
+}
+
+
+PetscErrorCode apply_bc_on_res(Vec b)
+{
+	PetscErrorCode ierr;
+
+	PetscReal *zeros = calloc(nbcs, sizeof(PetscReal));
+
+	ierr = VecSetValues(b, nbcs, index_dirichlet, zeros, INSERT_VALUES); CHKERRQ(ierr);
+	ierr = VecAssemblyBegin(b);CHKERRQ(ierr);
+	ierr = VecAssemblyEnd(b);CHKERRQ(ierr);
+
+	free(zeros);
 	return ierr;
 }
 
