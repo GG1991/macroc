@@ -131,12 +131,12 @@ PetscErrorCode bc_apply_on_u_circle(double U, Vec u)
 				bc_vals[index++] =  0.;
 
 
-	for (i = 0; i < nx; ++i) {
-		for (k = 0; k < nz; ++k) {
-			if (sj + ny == N) { /* Y = LY (INSIDE CIRCLE) */
-				double x = (si + i) * dx + dx / 2.;
-				double z = (sk + k) * dz + dz / 2.;
-				if (x * x + z * z < rad * rad)
+	if (sj + ny == N) { /* Y = LY (INSIDE CIRCLE) */
+		for (i = 0; i < nx; ++i) {
+			for (k = 0; k < nz; ++k) {
+				double x = lx / 2. - ((si + i) * dx + dx / 2.);
+				double z = lz / 2. - ((sk + k) * dz + dz / 2.);
+				if ((x * x + z * z) < (rad * rad))
 					bc_vals[index++] = U;
 			}
 		}
@@ -320,12 +320,14 @@ PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
 	}
 
 
-	for (i = 0; i < nx; ++i) {
-		for (k = 0; k < nz; ++k) {
-			if (sj + ny == N) { /* Y = LY (INSIDE CIRCLE) */
-				double x = (si + i) * dx + dx / 2.;
-				double z = (sk + k) * dz + dz / 2.;
-				if (x * x + z * z < rad * rad) {
+	if (sj + ny == N) { /* Y = LY (INSIDE CIRCLE) */
+		j = ny - 1;
+		for (i = 0; i < nx; ++i) {
+			for (k = 0; k < nz; ++k) {
+				double x = lx / 2. - ((si + i) * dx + dx / 2.);
+				double z = lz / 2. - ((sk + k) * dz + dz / 2.);
+				const int d = 1;
+				if ((x * x + z * z) < (rad * rad)) {
 					PetscInt local_id = i + j * nx + k * nx * ny;
 					ix[index++] = g_idx[local_id * DIM + d];
 				}
