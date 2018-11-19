@@ -44,6 +44,7 @@ PetscErrorCode init()
     vtu_freq = VTU_FREQ;
     newton_max_its = NEWTON_MAX_ITS;
     newton_min_tol = NEWTON_MIN_TOL;
+    bc_type = BC_BENDING;
 
     PetscOptionsGetReal(NULL, NULL, "-dt", &dt, NULL);
     PetscOptionsGetReal(NULL, NULL, "-lx", &lx, NULL);
@@ -54,6 +55,7 @@ PetscErrorCode init()
     PetscOptionsGetInt(NULL, NULL, "-micro_n", &micro_n, NULL);
     PetscOptionsGetInt(NULL, NULL, "-vtu_freq", &vtu_freq, NULL);
     PetscOptionsGetInt(NULL, NULL, "-new_its", &newton_max_its, NULL);
+    PetscOptionsGetInt(NULL, NULL, "-bc_type", &bc_type, NULL);
 
     DMBoundaryType bx = DM_BOUNDARY_NONE, by = DM_BOUNDARY_NONE,
                    bz = DM_BOUNDARY_NONE;
@@ -70,6 +72,9 @@ PetscErrorCode init()
     ierr = DMCreateGlobalVector(da, &b); CHKERRQ(ierr);
     ierr = DMCreateGlobalVector(da, &du); CHKERRQ(ierr);
 
+    ierr = VecSetOption(u, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE);
+    ierr = VecSetOption(b, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE);
+
     ierr = VecZeroEntries(u); CHKERRQ(ierr);
     ierr = VecZeroEntries(b); CHKERRQ(ierr);
     ierr = VecZeroEntries(du); CHKERRQ(ierr);
@@ -82,6 +87,7 @@ PetscErrorCode init()
     dy = ly / (N - 1);
     dz = lz / (P - 1);
     wg = dx * dy * dz / NPE;
+    rad = 1.;
 
     KSPType ksptype;
     PetscReal rtol, abstol, dtol;
@@ -126,6 +132,7 @@ PetscErrorCode init()
                 "Min : %d Max : %d Unbalance (Max - Min) / Max = %3.1lf %\n",
                 min, max, 1. * (max - min) / (1. * max) * 100.);
 
+    ierr = bc_init(da, &index_dirichlet, &nbcs, &index_dirichlet_positive, &nbcs_positive);
 
     // Initializes <micro> declared in <micropp_c_wrapper.h>
     int ngpl = nex * ney * nez * NGP;
@@ -149,6 +156,9 @@ PetscErrorCode finish()
     ierr = VecDestroy(&b); CHKERRQ(ierr);
     ierr = VecDestroy(&du); CHKERRQ(ierr);
     ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
+
+    ierr = bc_finish(index_dirichlet); CHKERRQ(ierr);
+
     ierr = PetscFinalize();
     return ierr;
 }
