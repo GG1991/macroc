@@ -168,11 +168,13 @@ PetscErrorCode assembly_res(Vec b, PetscReal *force)
 
 	ierr = calc_force(da, b, force);
 
+	//VecView(b, PETSC_VIEWER_STDOUT_WORLD);
+
 	ierr = apply_bc_on_res(b);
 
-	ierr = VecScale(b, -1.); CHKERRQ(ierr);
-
 	//VecView(b, PETSC_VIEWER_STDOUT_WORLD);
+
+	ierr = VecScale(b, -1.); CHKERRQ(ierr);
 
 	return ierr;
 }
