@@ -248,6 +248,72 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet,
 
 	*_index_dirichlet = ix;
 	*_nbcs = nbcs;
+
+	ierr = ISLocalToGlobalMappingRestoreIndices(ltogm, &g_idx); CHKERRQ(ierr);
+
+	return ierr;
+}
+
+PetscErrorCode calc_force(DM da, Vec b, PetscReal *force)
+{
+	PetscErrorCode ierr;
+
+	if (bc_type == BC_BENDING) {
+
+		ierr = calc_force_bending(da, b, force);
+
+	} else if (bc_type == BC_CIRCLE) {
+
+//		ierr = calc_force_(da, _index_dirichlet, _nbcs);
+
+	}
+
+	return ierr;
+}
+
+
+PetscErrorCode calc_force_bending(DM da, Vec b, PetscReal *force)
+{
+	PetscErrorCode ierr;
+	PetscInt i, j, k, d;
+	PetscInt M, N, P;
+	PetscInt si_local, sj_local, sk_local;
+	PetscInt nx_local, ny_local, nz_local;
+	PetscInt nx, ny, nz;
+	PetscReal force_per_mpi = 0.0;
+
+	Vec b_loc;
+	PetscScalar *b_arr;
+	ierr = DMGetLocalVector(da, &b_loc); CHKERRQ(ierr);
+	ierr = VecZeroEntries(b_loc); CHKERRQ(ierr);
+	ierr = VecGetArray(b_loc, &b_arr);CHKERRQ(ierr);
+	ierr = DMGlobalToLocalBegin(da, b, INSERT_VALUES, b_loc); CHKERRQ(ierr);
+	ierr = DMGlobalToLocalEnd(da, b, INSERT_VALUES, b_loc); CHKERRQ(ierr);
+
+	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+	ierr = DMDAGetCorners(da, &si_local, &sj_local, &sk_local,
+			      &nx_local, &ny_local, &nz_local); CHKERRQ(ierr);
+	ierr = DMDAGetGhostCorners(da, NULL, NULL, NULL, &nx, &ny, &nz); CHKERRQ(ierr);
+
+	if (si_local + nx_local == M) {
+		i = nx_local - 1; /* X = LX */
+		for (k = 0; k < nz_local; ++k) {
+			for (j = 0; j < ny_local; ++j) {
+				int d = 1;
+				PetscInt local_id = (i + j * nx + k * nx * ny) * DIM + d;
+				force_per_mpi += b_arr[local_id];
+			}
+		}
+	}
+
+	ierr = VecRestoreArray(b_loc, &b_arr); CHKERRQ(ierr);
+	ierr = VecDestroy(&b_loc); CHKERRQ(ierr);
+
+	*force = 0.0;
+
+	ierr = MPI_Reduce(&force_per_mpi, force, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
 	return ierr;
 }
 
