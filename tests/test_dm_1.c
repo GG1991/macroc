@@ -31,7 +31,7 @@ Use the options
 int main(int argc,char **argv)
 {
     PetscMPIInt      rank;
-    PetscInt         M = 10,N = 8;
+    PetscInt         M = 5,N = 5;
     PetscErrorCode   ierr;
     PetscBool        flg = PETSC_FALSE;
     DM               da;
@@ -68,14 +68,26 @@ int main(int argc,char **argv)
     VecAssemblyBegin(global);
     VecAssemblyEnd(global);
 
-    PetscInt x0, y0, z0, dx, dy, dz;
-    DMDAGetCorners(da,&x0,&y0,&z0,&dx,&dy,&dz);
+    PetscInt x0, y0, z0, nx, ny, nz;
+    PetscInt x0_ghost, y0_ghost, z0_ghost, nx_ghost, ny_ghost, nz_ghost;
+    DMDAGetCorners(da,&x0,&y0,&z0,&nx,&ny,&nz);
     PetscInt nel, npe;
     const PetscInt *e;
     DMDAGetElements(da,&nel,&npe,&e);
-    //DMDAGetGhostCorners(da,&x0,&y0,&z0,&dx,&dy,&dz);
-    printf("rank:%d x0:%d\ty0:%d\tz0:%d\tdx:%d\tdy:%d\tdz:%d\n",rank,x0,y0,z0,dx,dy,dz);
-    printf("rank:%d nel:%d\tnpe:%d\n",rank,nel,npe);
+    DMDAGetGhostCorners(da, &x0_ghost, &y0_ghost, &z0_ghost, &nx_ghost, &ny_ghost, &nz_ghost);
+
+    PetscSynchronizedPrintf(PETSC_COMM_WORLD, "rank:%d\nM:%d\tN:%d\t\n", rank, M, N);
+    PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
+
+    PetscSynchronizedPrintf(PETSC_COMM_WORLD, "rank:%d\nx0:%d\ty0:%d\tz0:%d\nnx:%d\tny:%d\tnz:%d\n", rank, x0, y0, z0, nx, ny, nz);
+    PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
+
+    PetscSynchronizedPrintf(PETSC_COMM_WORLD, "rank:%d\nx0:%d\ty0:%d\tz0:%d\nnx:%d\tny:%d\tnz:%d (GHOST)\n", rank, x0_ghost, y0_ghost, z0_ghost, nx_ghost, ny_ghost, nz_ghost);
+    PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
+
+    PetscSynchronizedPrintf(PETSC_COMM_WORLD, "rank:%d\nnel:%d\tnpe:%d\n",rank,nel,npe);
+    PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
+
     PetscInt i, d;
     for(i = 0; i < nel; ++i){
         printf("e %d : %d %d %d %d\n",i,e[npe*i],e[npe*i+1],e[npe*i+2],e[npe*i+3]);
