@@ -27,7 +27,7 @@ PetscErrorCode init()
 	PetscErrorCode ierr;
 	char mess[64];
 	PetscInt micro_n = 5;
-	PetscInt micro_type = 6;
+	PetscInt micro_type = 5;
 	PetscReal micro_mat_1[4] = { 1.0e7, 0.25, 1.0e4, 1.0e7 };
 	PetscReal micro_mat_2[4] = { 1.0e9, 0.25, 1.0e4, 1.0e7 };
 
