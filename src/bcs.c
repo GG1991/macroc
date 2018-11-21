@@ -301,7 +301,7 @@ PetscErrorCode calc_force_bending(DM da, Vec b, PetscReal *force)
 		for (k = 0; k < nz_local; ++k) {
 			for (j = 0; j < ny_local; ++j) {
 				int d = 1;
-				PetscInt local_id = (i + j * nx + k * nx * ny) * DIM + d;
+				PetscInt local_id = (i + j * nx_local + k * nx_local * ny_local) * DIM + d;
 				force_per_mpi += b_arr[local_id];
 			}
 		}
@@ -319,7 +319,7 @@ PetscErrorCode calc_force_bending(DM da, Vec b, PetscReal *force)
 
 
 PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
-			       PetscInt *_nbcs)
+			      PetscInt *_nbcs)
 {
 	PetscErrorCode ierr;
 	PetscInt si, sj, sk;

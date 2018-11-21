@@ -103,6 +103,18 @@ PetscErrorCode init()
 	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0,
 			   0, 0, 0, 0, 0); CHKERRQ(ierr);
 
+	PetscPrintf(PETSC_COMM_WORLD, "Boundary Condition : ");
+	switch (bc_type) {
+		case (BC_BENDING):
+			PetscPrintf(PETSC_COMM_WORLD, "BC_BENDING\n");
+			break;
+		case (BC_CIRCLE):
+			PetscPrintf(PETSC_COMM_WORLD, "BC_CIRCLE\n");
+			break;
+		default:
+			break;
+	}
+
 	PetscPrintf(PETSC_COMM_WORLD,
 		    "Number of CPUs     : %d\n", nproc);
 	PetscPrintf(PETSC_COMM_WORLD,

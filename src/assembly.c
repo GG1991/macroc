@@ -117,7 +117,7 @@ PetscErrorCode assembly_jac(Mat A)
 }
 
 
-PetscErrorCode assembly_res(Vec b)
+PetscErrorCode assembly_res(Vec b, PetscReal *force)
 {
 	PetscErrorCode ierr;
 	PetscInt ie, nelem;
@@ -165,6 +165,8 @@ PetscErrorCode assembly_res(Vec b)
 	ierr = DMLocalToGlobalEnd(da, b_loc, ADD_VALUES, b); CHKERRQ(ierr);
 	ierr = VecRestoreArray(b_loc, &b_arr); CHKERRQ(ierr);
 	ierr = VecDestroy(&b_loc);
+
+	ierr = calc_force(da, b, force);
 
 	ierr = apply_bc_on_res(b);
 

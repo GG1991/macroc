@@ -40,9 +40,9 @@
 #define TIME_STEPS     1
 #define VTU_FREQ       -1
 #define DT             0.001
-#define NX             10
-#define NY             10
-#define NZ             10
+#define NX             5
+#define NY             5
+#define NZ             5
 #define LX             10.0
 #define LY             1.0
 #define LZ             1.0
@@ -90,7 +90,7 @@ PetscErrorCode init();
 PetscErrorCode finish();
 PetscErrorCode set_strains();
 PetscErrorCode assembly_jac(Mat A);
-PetscErrorCode assembly_res(Vec b);
+PetscErrorCode assembly_res(Vec b, PetscReal *force);
 PetscErrorCode solve_Ax(KSP ksp, Vec b, Vec x);
 
 void calc_B(int gp, double B[6][NPE * DIM]);
