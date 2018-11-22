@@ -22,6 +22,10 @@
 #include "macroc.h"
 
 
+/* Sets the displacement values on Dirichlet indeces
+ * acording to the time step.
+ */
+
 PetscErrorCode apply_bc_on_u(int time_step, Vec u)
 {
 	PetscErrorCode ierr;
@@ -53,34 +57,28 @@ PetscErrorCode bc_apply_on_u_bending(double U, Vec u)
 	PetscErrorCode ierr;
 	PetscReal *bc_vals;
 	PetscInt i, j, k, d;
-	PetscInt si, sj, sk;
-	PetscInt nx, ny, nz;
-
-	ISLocalToGlobalMapping ltogm;
-	const PetscInt *g_idx;
-	ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
-	ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
-	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
 
 	bc_vals = malloc(nbcs * sizeof(PetscReal));
 
 	PetscInt index = 0;
-	if (si == 0) /* X = 0 */
-		for (k = 0; k < nz; ++k)
-			for (j = 0; j < ny; ++j)
+
+	/* Surface X = 0 */
+	if (si_ghost == 0)
+		for (k = 0; k < nz_ghost; ++k)
+			for (j = 0; j < ny_ghost; ++j)
 				for (d = 0; d < DIM; ++d)
 					bc_vals[index++] =  0.;
 
-	if (si + nx == NX) /* X = LX */
-		for (k = 0; k < nz; ++k)
-			for (j = 0; j < ny; ++j)
+	/* Surface X = LX */
+	if (si_ghost + nx_ghost == NX)
+		for (k = 0; k < nz_ghost; ++k)
+			for (j = 0; j < ny_ghost; ++j)
 				for (d = 0; d < DIM; ++d)
 					bc_vals[index++] = (d == 1) ? U : 0.;
 
 	ierr = VecSetValues(u, nbcs, index_dirichlet, bc_vals, INSERT_VALUES); CHKERRQ(ierr);
 	ierr = VecAssemblyBegin(u); CHKERRQ(ierr);
 	ierr = VecAssemblyEnd(u); CHKERRQ(ierr);
-	ierr = ISLocalToGlobalMappingRestoreIndices(ltogm, &g_idx); CHKERRQ(ierr);
 
 	free(bc_vals);
 	return ierr;
@@ -92,45 +90,41 @@ PetscErrorCode bc_apply_on_u_circle(double U, Vec u)
 	PetscErrorCode ierr;
 	PetscReal *bc_vals;
 	PetscInt i, j, k, d;
-	PetscInt si, sj, sk;
-	PetscInt nx, ny, nz;
-
-	ISLocalToGlobalMapping ltogm;
-	const PetscInt *g_idx;
-	ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
-	ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
-	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
 
 	bc_vals = malloc(nbcs * sizeof(PetscReal));
 
 	PetscInt index = 0;
 
-	if (si == 0 && sj == 0) /* X = 0 & Y = 0 (ALONG Z) */
-		for (k = 0; k < nz; ++k)
+	/* X = 0 & Y = 0 (ALONG Z) */
+	if (si_ghost == 0 && sj_ghost == 0)
+		for (k = 0; k < nz_ghost; ++k)
 			for (d = 0; d < DIM; ++d)
 				bc_vals[index++] =  0.;
 
-	if (si + nx == NX && sj == 0) /* X = LX & Y = 0 (ALONG Z) */
-		for (k = 0; k < nz; ++k)
+	/* X = LX & Y = 0 (ALONG Z) */
+	if (si_ghost + nx_ghost == NX && sj_ghost == 0)
+		for (k = 0; k < nz_ghost; ++k)
 			for (d = 0; d < DIM; ++d)
 				bc_vals[index++] =  0.;
 
-	if (sk == 0 && sj == 0) /* Z = 0 & Y = 0 (ALONG X) */
-		for (i = 1; i < nx - 1; ++i)
+	/* Z = 0 & Y = 0 (ALONG X) */
+	if (sk_ghost == 0 && sj_ghost == 0)
+		for (i = 1; i < nx_ghost - 1; ++i)
 			for (d = 0; d < DIM; ++d)
 				bc_vals[index++] =  0.;
 
-	if (sk + nz == NZ && sj == 0) /* Z = LZ & Y = 0 (ALONG X) */
-		for (i = 1; i < nx - 1; ++i)
+	/* Z = LZ & Y = 0 (ALONG X) */
+	if (sk_ghost + nz_ghost == NZ && sj_ghost == 0)
+		for (i = 1; i < nx_ghost - 1; ++i)
 			for (d = 0; d < DIM; ++d)
 				bc_vals[index++] =  0.;
 
-
-	if (sj + ny == NY) { /* Y = LY (INSIDE CIRCLE) */
-		for (i = 0; i < nx; ++i) {
-			for (k = 0; k < nz; ++k) {
-				double x = lx / 2. - ((si + i) * dx + dx / 2.);
-				double z = lz / 2. - ((sk + k) * dz + dz / 2.);
+	/* Y = LY (INSIDE CIRCLE) */
+	if (sj_ghost + ny_ghost == NY) {
+		for (i = 0; i < nx_ghost; ++i) {
+			for (k = 0; k < nz_ghost; ++k) {
+				double x = lx / 2. - ((si_ghost + i) * dx + dx / 2.);
+				double z = lz / 2. - ((sk_ghost + k) * dz + dz / 2.);
 				if ((x * x + z * z) < (rad * rad))
 					bc_vals[index++] = U;
 			}
@@ -140,12 +134,16 @@ PetscErrorCode bc_apply_on_u_circle(double U, Vec u)
 	ierr = VecSetValues(u, nbcs, index_dirichlet, bc_vals, INSERT_VALUES); CHKERRQ(ierr);
 	ierr = VecAssemblyBegin(u); CHKERRQ(ierr);
 	ierr = VecAssemblyEnd(u); CHKERRQ(ierr);
-	ierr = ISLocalToGlobalMappingRestoreIndices(ltogm, &g_idx); CHKERRQ(ierr);
 
 	free(bc_vals);
 	return ierr;
 }
 
+
+/* creates :
+ * <nbcs>, <index_dirichlet>, <nbcs_positive> and <index_dirichlet_positive>
+ * for being used in the BC settings on <A>, <u> and <b>.
+ */
 
 PetscErrorCode bc_init(DM da, PetscInt **_index_dirichlet, PetscInt *_nbcs,
 		       PetscInt **_index_dirichlet_positive,
@@ -168,8 +166,10 @@ PetscErrorCode bc_init(DM da, PetscInt **_index_dirichlet, PetscInt *_nbcs,
 	nbcs = *_nbcs;
 	index_dirichlet = *_index_dirichlet;
 
-	/* <nbcs_positive> and <index_dirichlet_positive> are used for
-	 * MatSetValues that does not acept negative indeces.
+	/* filters positive values of <nbcs> and <index_dirichlet>
+	 * to create  <nbcs_positive> and <index_dirichlet_positive>
+	 * for being used in MatSetValues in BC setting
+	 * (does not acept negative indeces).
 	 */
 	nbcs_positive = 0;
 	for (i = 0; i < nbcs; ++i)
@@ -193,8 +193,6 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet,
 			       PetscInt *_nbcs)
 {
 	PetscErrorCode ierr;
-	PetscInt si, sj, sk;
-	PetscInt nx, ny, nz;
 	PetscInt i, j, k, d;
 	PetscInt nbcs;
 	PetscInt *ix;
@@ -204,9 +202,7 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet,
 	ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
 	ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
 
-	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
-
-	nbcs = 2 * ny * nz * DIM;
+	nbcs = 2 * ny_ghost * nz_ghost * DIM;
 
 	ix = malloc(nbcs * sizeof(PetscInt));
 	for (i = 0; i < nbcs; ++i)
@@ -214,25 +210,26 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet,
 
 	PetscInt index = 0;
 
-	if (si == 0) {
-		i = 0; /* X = 0 */
-		for (k = 0; k < nz; ++k) {
-			for (j = 0; j < ny; ++j) {
+	/* Surface X = 0 */
+	if (si_ghost == 0) {
+		i = 0;
+		for (k = 0; k < nz_ghost; ++k) {
+			for (j = 0; j < ny_ghost; ++j) {
 				for (d = 0; d < DIM; ++d) {
-					PetscInt local_id = i + j * nx + k * nx * ny;
+					PetscInt local_id = i + j * nx_ghost + k * nx_ghost * ny_ghost;
 					ix[index++] = g_idx[local_id * DIM + d];
 				}
 			}
 		}
 	}
 
-
-	if (si + nx == NX) {
-		i = nx - 1; /* X = LX */
-		for (k = 0; k < nz; ++k) {
-			for (j = 0; j < ny; ++j) {
+	/* Surface X = LX */
+	if (si_ghost + nx_ghost == NX) {
+		i = nx_ghost - 1;
+		for (k = 0; k < nz_ghost; ++k) {
+			for (j = 0; j < ny_ghost; ++j) {
 				for (d = 0; d < DIM; ++d) {
-					PetscInt local_id = i + j * nx + k * nx * ny;
+					PetscInt local_id = i + j * nx_ghost + k * nx_ghost * ny_ghost;
 					ix[index++] = g_idx[local_id * DIM + d];
 				}
 			}
@@ -247,12 +244,11 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet,
 	return ierr;
 }
 
+
 PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
 			      PetscInt *_nbcs)
 {
 	PetscErrorCode ierr;
-	PetscInt si, sj, sk;
-	PetscInt nx, ny, nz;
 	PetscInt i, j, k, d;
 	PetscInt nbcs;
 	PetscInt *ix;
@@ -262,9 +258,7 @@ PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
 	ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
 	ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
 
-	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
-
-	nbcs = (2 * nx + 2 * nz) * DIM + nx * nz;
+	nbcs = (2 * nx_ghost + 2 * nz_ghost) * DIM + nx_ghost * nz_ghost;
 
 	ix = malloc(nbcs * sizeof(PetscInt));
 	for (i = 0; i < nbcs; ++i)
@@ -272,56 +266,60 @@ PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
 
 	PetscInt index = 0;
 
-	if (si == 0 && sj == 0) { /* X = 0 & Y = 0 (ALONG Z) */
+	/* X = 0 & Y = 0 (ALONG Z) */
+	if (si_ghost == 0 && sj_ghost == 0) {
 		i = 0;
 		j = 0;
-		for (k = 0; k < nz; ++k) {
-			PetscInt local_id = i + j * nx + k * nx * ny;
+		for (k = 0; k < nz_ghost; ++k) {
+			PetscInt local_id = i + j * nx_ghost + k * nx_ghost * ny_ghost;
 			for (d = 0; d < DIM; ++d)
 				ix[index++] = g_idx[local_id * DIM + d];
 		}
 	}
 
-	if (si + nx == NX && sj == 0) { /* X = LX & Y = 0 (ALONG Z) */
-		i = nx - 1;
+	/* X = LX & Y = 0 (ALONG Z) */
+	if (si_ghost + nx_ghost == NX && sj_ghost == 0) {
+		i = nx_ghost - 1;
 		j = 0;
-		for (k = 0; k < nz; ++k) {
-			PetscInt local_id = i + j * nx + k * nx * ny;
+		for (k = 0; k < nz_ghost; ++k) {
+			PetscInt local_id = i + j * nx_ghost + k * nx_ghost * ny_ghost;
 			for (d = 0; d < DIM; ++d)
 				ix[index++] = g_idx[local_id * DIM + d];
 		}
 	}
 
-	if (sk == 0 && sj == 0) { /* Z = 0 & Y = 0 (ALONG X) */
+	/* Z = 0 & Y = 0 (ALONG X) */
+	if (sk_ghost == 0 && sj_ghost == 0) {
 		k = 0;
 		j = 0;
-		for (i = 1; i < nx - 1; ++i) {
-			PetscInt local_id = i + j * nx + k * nx * ny;
+		for (i = 1; i < nx_ghost - 1; ++i) {
+			PetscInt local_id = i + j * nx_ghost + k * nx_ghost * ny_ghost;
 			for (d = 0; d < DIM; ++d)
 				ix[index++] = g_idx[local_id * DIM + d];
 		}
 	}
 
-	if (sk + nz == NZ && sj == 0) { /* Z = LZ & Y = 0 (ALONG X) */
-		k = nz - 1;
+	/* Z = LZ & Y = 0 (ALONG X) */
+	if (sk_ghost + nz_ghost == NZ && sj_ghost == 0) {
+		k = nz_ghost - 1;
 		j = 0;
-		for (i = 1; i < nx - 1; ++i) {
-			PetscInt local_id = i + j * nx + k * nx * ny;
+		for (i = 1; i < nx_ghost - 1; ++i) {
+			PetscInt local_id = i + j * nx_ghost + k * nx_ghost * ny_ghost;
 			for (d = 0; d < DIM; ++d)
 				ix[index++] = g_idx[local_id * DIM + d];
 		}
 	}
 
-
-	if (sj + ny == NY) { /* Y = LY (INSIDE CIRCLE) */
-		j = ny - 1;
-		for (i = 0; i < nx; ++i) {
-			for (k = 0; k < nz; ++k) {
-				double x = lx / 2. - ((si + i) * dx + dx / 2.);
-				double z = lz / 2. - ((sk + k) * dz + dz / 2.);
+	/* Circle in Surface <Y = LY>  &  <X^2 + Z^2 < R^2> */
+	if (sj_ghost + ny_ghost == NY) {
+		j = ny_ghost - 1;
+		for (i = 0; i < nx_ghost; ++i) {
+			for (k = 0; k < nz_ghost; ++k) {
+				double x = lx / 2. - ((si_ghost + i) * dx + dx / 2.);
+				double z = lz / 2. - ((sk_ghost + k) * dz + dz / 2.);
 				const int d = 1;
 				if ((x * x + z * z) < (rad * rad)) {
-					PetscInt local_id = i + j * nx + k * nx * ny;
+					PetscInt local_id = i + j * nx_ghost + k * nx_ghost * ny_ghost;
 					ix[index++] = g_idx[local_id * DIM + d];
 				}
 			}
