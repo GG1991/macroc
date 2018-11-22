@@ -80,7 +80,38 @@ PetscInt nbcs;
 PetscInt nbcs_positive;
 PetscReal rad;
 
-PetscInt NX, NY, NZ; // Total number of nodes in each direction
+
+PetscInt NX, NY, NZ;                   /* Total number of nodes in each
+					  direction
+					  (THE SAME for all processors) */
+
+PetscInt NP_X, NP_Y, NP_Z;             /* Number of processors in each
+					  direction
+					  (THE SAME for all processors) */
+
+PetscInt nx_ghost, ny_ghost, nz_ghost; /* Number of nodes in each direction
+					  including ghost nodes
+					  (DIFFERENT for each processors) */
+
+PetscInt nx_local, ny_local, nz_local; /* Number of nodes in each direction
+					  (DIFFERENT for each processors) */
+
+
+PetscInt si_ghost, sj_ghost, sk_ghost; /* Number of nodes in each direction
+					  including ghost nodes
+					  (DIFFERENT for each processors) */
+
+PetscInt si_local, sj_local, sk_local; /* Number of nodes in each direction
+					  (DIFFERENT for each processors) */
+
+
+PetscInt nex, ney, nez;                /* Number of elements in each direction
+					  (DIFFERENT for each processors) */
+
+
+PetscInt nelem;                        /* Total number of elements
+					  (DIFFERENT for each processors) */
+
 
 DM da;
 PC pc;
@@ -115,7 +146,7 @@ PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet, PetscInt *_nbc
 PetscErrorCode bc_finish(PetscInt *index_dirichlet);
 
 PetscErrorCode calc_force(DM da, Vec b, PetscReal *force);
-PetscErrorCode calc_force_bending(DM da, PetscReal *_force_per_mpi);
-PetscErrorCode calc_force_circle(DM da, PetscReal *_force_per_mpi);
+PetscErrorCode calc_force_bending(DM da, PetscReal *_mpi_force);
+PetscErrorCode calc_force_circle(DM da, PetscReal *_mpi_force);
 
 #endif

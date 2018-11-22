@@ -28,10 +28,19 @@ int main(int argc,char **args)
 
 	ierr = PetscInitialize(&argc, &args, (char*)0, help); if(ierr) return ierr;
 
+	PetscPrintf(PETSC_COMM_WORLD,
+		    "\nMacroC : A HPC for FE2 Multi-scale Simulations\n\n");
+
+	PetscPrintf(PETSC_COMM_WORLD, " >>> Starting Initialization : \n\n");
+
 	int rank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
 	ierr = init();
+
+	PetscPrintf(PETSC_COMM_WORLD, "\n <<< Finishing Initialization.\n\n\n");
+
+	PetscPrintf(PETSC_COMM_WORLD, " >>> Starting Calculation.\n");
 
 	double t1, t2;
 	t1 = MPI_Wtime();
@@ -81,7 +90,10 @@ int main(int argc,char **args)
 	}
 
 	t2 = MPI_Wtime();
-	PetscPrintf(MPI_COMM_WORLD, "\nElapsed time : %f\n", t2 - t1);
+
+	PetscPrintf(MPI_COMM_WORLD,
+		    "\n\n <<< Calculation Finished OK\n\n"
+		    "Elapsed time : %f\n", t2 - t1);
 
 	ierr = finish();
 	return ierr;
