@@ -26,16 +26,9 @@
  * acording to the time step.
  */
 
-PetscErrorCode apply_bc_on_u(int time_step, Vec u)
+PetscErrorCode apply_bc_on_u(double U, Vec u)
 {
 	PetscErrorCode ierr;
-	PetscReal time = time_step * dt;
-
-	double U;
-	if(time < final_time / 2.)
-		U = U_MAX * (time / final_time);
-	else
-		U = U_MAX;
 
 	if (bc_type == BC_BENDING) {
 
@@ -49,6 +42,24 @@ PetscErrorCode apply_bc_on_u(int time_step, Vec u)
 
 	//VecView(u, PETSC_VIEWER_STDOUT_WORLD);
 	return ierr;
+}
+
+
+/*
+ * Ramp function to simulate Loading / Unloading
+ */
+
+double get_displacement(int time_s)
+{
+	double time = time_s * dt;
+	double U;
+
+	if(time < final_time / 2.)
+		U = U_MAX * (time / final_time);
+	else
+		U = U_MAX;
+
+	return U;
 }
 
 
