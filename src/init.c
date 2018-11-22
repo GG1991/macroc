@@ -55,6 +55,9 @@ PetscErrorCode init()
 	lx = LX;
 	ly = LY;
 	lz = LZ;
+	NX = NX_CONST;
+	NY = NY_CONST;
+	NZ = NZ_CONST;
 
 	vtu_freq = VTU_FREQ;
 	newton_max_its = NEWTON_MAX_ITS;
@@ -99,9 +102,7 @@ PetscErrorCode init()
 	ierr = VecZeroEntries(b); CHKERRQ(ierr);
 	ierr = VecZeroEntries(du); CHKERRQ(ierr);
 
-	PetscInt M, N, P;
-	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0,
-			   0, 0, 0, 0, 0); CHKERRQ(ierr);
+	ierr = DMDAGetInfo(da, 0, &NX, &NY, &NZ, 0, 0, 0, 0, 0, 0, 0, 0, 0); CHKERRQ(ierr);
 
 	PetscPrintf(PETSC_COMM_WORLD, "Boundary Condition : ");
 	switch (bc_type) {
@@ -118,15 +119,15 @@ PetscErrorCode init()
 	PetscPrintf(PETSC_COMM_WORLD,
 		    "Number of CPUs     : %d\n", nproc);
 	PetscPrintf(PETSC_COMM_WORLD,
-		    "Number of Elements : %ld\n", (M - 1) * (N - 1) * (P - 1));
+		    "Number of Elements : %ld\n", (NX - 1) * (NY - 1) * (NZ- 1));
 	PetscPrintf(PETSC_COMM_WORLD,
-		    "Number of Nodes    : %ld\n", M * N * P);
+		    "Number of Nodes    : %ld\n", NX * NY * NZ);
 	PetscPrintf(PETSC_COMM_WORLD,
-		    "Number of DOFs     : %ld\n\n", (M * N * P) * DIM);
+		    "Number of DOFs     : %ld\n\n", (NX * NY * NZ) * DIM);
 
-	dx = lx / (M - 1);
-	dy = ly / (N - 1);
-	dz = lz / (P - 1);
+	dx = lx / (NX - 1);
+	dy = ly / (NY - 1);
+	dz = lz / (NZ - 1);
 	wg = dx * dy * dz / NPE;
 	rad = 1.;
 

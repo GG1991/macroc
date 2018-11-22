@@ -43,7 +43,6 @@ PetscErrorCode apply_bc_on_u(int time_step, Vec u)
 
 	}
 
-
 	//VecView(u, PETSC_VIEWER_STDOUT_WORLD);
 	return ierr;
 }
@@ -56,13 +55,11 @@ PetscErrorCode bc_apply_on_u_bending(double U, Vec u)
 	PetscInt i, j, k, d;
 	PetscInt si, sj, sk;
 	PetscInt nx, ny, nz;
-	PetscInt M, N, P;
 
 	ISLocalToGlobalMapping ltogm;
 	const PetscInt *g_idx;
 	ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
 	ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
-	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
 
 	bc_vals = malloc(nbcs * sizeof(PetscReal));
@@ -74,7 +71,7 @@ PetscErrorCode bc_apply_on_u_bending(double U, Vec u)
 				for (d = 0; d < DIM; ++d)
 					bc_vals[index++] =  0.;
 
-	if (si + nx == M) /* X = LX */
+	if (si + nx == NX) /* X = LX */
 		for (k = 0; k < nz; ++k)
 			for (j = 0; j < ny; ++j)
 				for (d = 0; d < DIM; ++d)
@@ -97,13 +94,11 @@ PetscErrorCode bc_apply_on_u_circle(double U, Vec u)
 	PetscInt i, j, k, d;
 	PetscInt si, sj, sk;
 	PetscInt nx, ny, nz;
-	PetscInt M, N, P;
 
 	ISLocalToGlobalMapping ltogm;
 	const PetscInt *g_idx;
 	ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
 	ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
-	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
 
 	bc_vals = malloc(nbcs * sizeof(PetscReal));
@@ -115,7 +110,7 @@ PetscErrorCode bc_apply_on_u_circle(double U, Vec u)
 			for (d = 0; d < DIM; ++d)
 				bc_vals[index++] =  0.;
 
-	if (si + nx == M && sj == 0) /* X = LX & Y = 0 (ALONG Z) */
+	if (si + nx == NX && sj == 0) /* X = LX & Y = 0 (ALONG Z) */
 		for (k = 0; k < nz; ++k)
 			for (d = 0; d < DIM; ++d)
 				bc_vals[index++] =  0.;
@@ -125,13 +120,13 @@ PetscErrorCode bc_apply_on_u_circle(double U, Vec u)
 			for (d = 0; d < DIM; ++d)
 				bc_vals[index++] =  0.;
 
-	if (sk + nz == P && sj == 0) /* Z = LZ & Y = 0 (ALONG X) */
+	if (sk + nz == NZ && sj == 0) /* Z = LZ & Y = 0 (ALONG X) */
 		for (i = 1; i < nx - 1; ++i)
 			for (d = 0; d < DIM; ++d)
 				bc_vals[index++] =  0.;
 
 
-	if (sj + ny == N) { /* Y = LY (INSIDE CIRCLE) */
+	if (sj + ny == NY) { /* Y = LY (INSIDE CIRCLE) */
 		for (i = 0; i < nx; ++i) {
 			for (k = 0; k < nz; ++k) {
 				double x = lx / 2. - ((si + i) * dx + dx / 2.);
@@ -201,7 +196,6 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet,
 	PetscInt si, sj, sk;
 	PetscInt nx, ny, nz;
 	PetscInt i, j, k, d;
-	PetscInt M, N, P;
 	PetscInt nbcs;
 	PetscInt *ix;
 
@@ -210,7 +204,6 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet,
 	ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
 	ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
 
-	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
 
 	nbcs = 2 * ny * nz * DIM;
@@ -234,7 +227,7 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet,
 	}
 
 
-	if (si + nx == M) {
+	if (si + nx == NX) {
 		i = nx - 1; /* X = LX */
 		for (k = 0; k < nz; ++k) {
 			for (j = 0; j < ny; ++j) {
@@ -254,145 +247,6 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet,
 	return ierr;
 }
 
-PetscErrorCode calc_force(DM da, Vec b, PetscReal *force)
-{
-	PetscErrorCode ierr;
-	PetscReal force_per_mpi;
-
-	switch (bc_type) {
-		case (BC_BENDING):
-			ierr = calc_force_bending(da, &force_per_mpi);
-			break;
-
-		case (BC_CIRCLE):
-			ierr = calc_force_circle(da, &force_per_mpi);
-			break;
-
-		default:
-			break;
-	}
-
-	*force = 0.0;
-	ierr = MPI_Reduce(&force_per_mpi, force, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-
-	return ierr;
-}
-
-
-PetscErrorCode calc_force_bending(DM da, PetscReal *_force_per_mpi)
-{
-	PetscErrorCode ierr;
-	PetscInt gp, gpi;
-	PetscInt e, ey, ez;
-	PetscReal force_per_mpi = 0.0;
-	PetscReal stress_ave[6];
-	PetscReal stress[6];
-	PetscInt M, N, P;
-
-	PetscInt nex, ney, nez;
-	ierr = DMDAGetElementsSizes(da, &nex, &ney, &nez); CHKERRQ(ierr);
-
-	PetscInt si, sj, sk;
-	PetscInt nx, ny, nz;
-	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0); CHKERRQ(ierr);
-	ierr = DMDAGetCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
-
-	if (si + nx == M) {
-		for(ey = 0; ey < ney; ++ey) {
-			for(ez = 0; ez < nez; ++ez) {
-
-				e = (nex - 1) + ey * nex + ez * (nex * ney);
-
-				memset(stress_ave, 0., NVOI * sizeof(PetscReal));
-				for(gp = 0; gp < NGP; ++gp) {
-
-					gpi = e * NGP + gp;
-					micropp_C_get_stress3(gpi, stress);
-
-					int i;
-					for (i = 0; i < NVOI; ++i)
-						stress_ave[i] += stress[i];
-
-				}
-				force_per_mpi += stress_ave[3] * dy * dz;
-
-			}
-		}
-	}
-
-	/* int rank;
-	 * ierr  = MPI_Comm_rank(PETSC_COMM_WORLD, &rank); CHKERRQ(ierr);
-	 * PetscSynchronizedPrintf(PETSC_COMM_WORLD, "rank:%d\tforce_mpi:%lf\n", rank, force_per_mpi);
-	 * PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
-	 */
-
-	*_force_per_mpi = force_per_mpi;
-
-	return ierr;
-}
-
-PetscErrorCode calc_force_circle(DM da, PetscReal *_force_per_mpi)
-{
-	PetscErrorCode ierr;
-	PetscInt gp, gpi;
-	PetscInt e, ex, ez;
-	PetscReal force_per_mpi = 0.0;
-	PetscReal stress_ave[6];
-	PetscReal stress[6];
-	PetscInt M, N, P;
-
-	PetscInt nex, ney, nez;
-	ierr = DMDAGetElementsSizes(da, &nex, &ney, &nez); CHKERRQ(ierr);
-
-	PetscInt si, sj, sk;
-	PetscInt nx, ny, nz;
-	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0); CHKERRQ(ierr);
-	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, NULL, NULL, NULL); CHKERRQ(ierr);
-	ierr = DMDAGetCorners(da, NULL, NULL, NULL, &nx, &ny, &nz); CHKERRQ(ierr);
-
-	int rank;
-	ierr  = MPI_Comm_rank(PETSC_COMM_WORLD, &rank); CHKERRQ(ierr);
-	if (sj + ny == N) {
-
-		for(ex = 0; ex < nex; ++ex) {
-			for(ez = 0; ez < nez; ++ez) {
-
-				double x = lx / 2. - ((si + ex) * dx + dx / 2.);
-				double z = lz / 2. - ((sk + ez) * dz + dz / 2.);
-
-				if ((x * x + z * z) < 1 * (rad * rad)) {
-
-					e = ex + (ney - 1) * nex + ez * (nex * ney);
-
-					memset(stress_ave, 0., NVOI * sizeof(PetscReal));
-					for(gp = 0; gp < NGP; ++gp) {
-
-						gpi = e * NGP + gp;
-						micropp_C_get_stress3(gpi, stress);
-
-						int i;
-						for (i = 0; i < NVOI; ++i)
-							stress_ave[i] += stress[i];
-
-					}
-					force_per_mpi += stress_ave[1] * dx * dz;
-				}
-
-			}
-		}
-	}
-
-	/*
-	PetscSynchronizedPrintf(PETSC_COMM_WORLD, "rank:%d\tforce_mpi:%lf\n", rank, force_per_mpi);
-	PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
-	*/
-
-	*_force_per_mpi = force_per_mpi;
-
-	return ierr;
-}
-
-
 PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
 			      PetscInt *_nbcs)
 {
@@ -400,7 +254,6 @@ PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
 	PetscInt si, sj, sk;
 	PetscInt nx, ny, nz;
 	PetscInt i, j, k, d;
-	PetscInt M, N, P;
 	PetscInt nbcs;
 	PetscInt *ix;
 
@@ -409,7 +262,6 @@ PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
 	ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
 	ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
 
-	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
 
 	nbcs = (2 * nx + 2 * nz) * DIM + nx * nz;
@@ -430,7 +282,7 @@ PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
 		}
 	}
 
-	if (si + nx == M && sj == 0) { /* X = LX & Y = 0 (ALONG Z) */
+	if (si + nx == NX && sj == 0) { /* X = LX & Y = 0 (ALONG Z) */
 		i = nx - 1;
 		j = 0;
 		for (k = 0; k < nz; ++k) {
@@ -450,7 +302,7 @@ PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
 		}
 	}
 
-	if (sk + nz == P && sj == 0) { /* Z = LZ & Y = 0 (ALONG X) */
+	if (sk + nz == NZ && sj == 0) { /* Z = LZ & Y = 0 (ALONG X) */
 		k = nz - 1;
 		j = 0;
 		for (i = 1; i < nx - 1; ++i) {
@@ -461,7 +313,7 @@ PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
 	}
 
 
-	if (sj + ny == N) { /* Y = LY (INSIDE CIRCLE) */
+	if (sj + ny == NY) { /* Y = LY (INSIDE CIRCLE) */
 		j = ny - 1;
 		for (i = 0; i < nx; ++i) {
 			for (k = 0; k < nz; ++k) {
