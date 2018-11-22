@@ -3,3 +3,8 @@ build*
 #*#
 *.swp
 *.old
+
+#LaTex files
+*.aux
+*.log
+*.pdf

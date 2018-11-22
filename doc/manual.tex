@@ -1,0 +1,83 @@
+\documentclass[conference, onecolumn]{IEEEtran}
+
+% \usepackage[pdftex]{graphicx}
+% \usepackage[dvips]{graphicx}
+%\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+%\usepackage{array}
+%\usepackage[caption=false,font=normalsize,labelfont=sf,textfont=sf]{subfig}
+%\usepackage{fixltx2e}
+%\usepackage{stfloats}
+%\usepackage{url}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\RequirePackage{amsfonts}
+\RequirePackage{standalone}
+\RequirePackage{tikz}
+\usetikzlibrary{matrix,backgrounds,calc,shapes,arrows,arrows.meta,fit,positioning}                                                                
+\usetikzlibrary{chains,shapes.multipart}                                                                                                          
+\usetikzlibrary{shapes,calc} 
+
+\usepackage{listings}
+\usepackage{color}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+language=C,
+aboveskip=3mm,
+belowskip=3mm,
+showstringspaces=false,
+basicstyle={\small\ttfamily},
+numbers=none,
+numberstyle=\tiny\color{gray},
+keywordstyle=\color{blue},
+commentstyle=\color{dkgreen},
+stringstyle=\color{mauve},
+breaklines=true,
+breakatwhitespace=true,
+tabsize=4
+}
+
+%columns=flexible,
+\hyphenation{op-tical net-works semi-conduc-tor}
+
+
+\begin{document}
+
+\title{MacroC: Reference Manual}
+
+\author{\IEEEauthorblockN{
+	Guido Giuntoli\IEEEauthorrefmark{1}\IEEEauthorrefmark{2},
+	}
+\IEEEauthorblockA{\IEEEauthorrefmark{1}Barcelona Supercomputing Center}
+\IEEEauthorblockA{\IEEEauthorrefmark{2}guido.giuntoli@bsc.es}
+}
+
+\maketitle
+
+% no keywords
+
+\IEEEpeerreviewmaketitle
+
+\section{Introduction}
+\IEEEPARstart
+MacroC is a structure-grid parallel finite element code used to solve the solid mechanics equations specialized for the resolution of the macro-scale problem of FE2 multi-scale calculation. This code was designed for being coupled with PETSc library, which provides the structure grid management and solver routines in parallel and MicroPP, which is a sequential code used to perform the localization-homogenization process on heterogeneous microstructures.
+
+\hfill August 26, 2015
+
+%\input{governing_equations_and_fe.tex}
+
+\section{Implementation}
+
+\section*{Acknowledgment}
+
+%\begin{thebibliography}{1}
+%\end{thebibliography}
+
+\end{document}
