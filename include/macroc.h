@@ -146,6 +146,8 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet, PetscInt *_nb
 PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet, PetscInt *_nbcs);
 PetscErrorCode bc_finish(PetscInt *index_dirichlet);
 
+PetscInt get_non_linear_gps(void);
+
 double calc_force(DM da);
 PetscErrorCode calc_force_bending(DM da, PetscReal *_mpi_force);
 PetscErrorCode calc_force_circle(DM da, PetscReal *_mpi_force);

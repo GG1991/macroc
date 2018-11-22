@@ -18,7 +18,9 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+
 #include "macroc.h"
+
 
 PetscErrorCode minmax_elems_across_mpis(DM da, int *min, int *max) {
 
@@ -59,4 +61,21 @@ PetscErrorCode minmax_elems_across_mpis(DM da, int *min, int *max) {
 	*max = _max;
 
 	return ierr;
+}
+
+
+/*
+ * Returns the number of non_linear Gauss points at the micro-scale
+ */
+
+PetscInt get_non_linear_gps(void)
+{
+	PetscErrorCode ierr;
+	PetscInt non_linear = 0;
+
+	PetscInt mpi_non_linear = micropp_C_get_non_linear_gps();
+
+	ierr = MPI_Reduce(&mpi_non_linear, &non_linear, 1, MPI_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
+
+	return non_linear;
 }
