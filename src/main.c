@@ -36,6 +36,8 @@ int main(int argc,char **args)
 	double t1, t2;
 	t1 = MPI_Wtime();
 
+	PetscReal displac, force;
+
 	double norm;
 	int time_s, newton_it;
 	for(time_s = 0; time_s < ts; ++time_s) {
@@ -53,9 +55,9 @@ int main(int argc,char **args)
 
 			PetscPrintf(PETSC_COMM_WORLD, "Assemblying RHS\n");
 
-			ierr = assembly_res(b);
+			ierr = assembly_res(b, &force);
 			ierr = VecNorm(b, NORM_2, &norm); CHKERRQ(ierr);
-			PetscPrintf(PETSC_COMM_WORLD, "|RES| = %e\n", norm);
+			PetscPrintf(PETSC_COMM_WORLD, "|RES| = %e\tForce = %e\n", norm, force);
 			if (norm < newton_min_tol) break;
 
 			ierr = assembly_jac(A);

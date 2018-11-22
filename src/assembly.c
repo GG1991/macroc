@@ -117,12 +117,11 @@ PetscErrorCode assembly_jac(Mat A)
 }
 
 
-PetscErrorCode assembly_res(Vec b)
+PetscErrorCode assembly_res(Vec b, PetscReal *force)
 {
 	PetscErrorCode ierr;
-	PetscInt ie, nelem;
 	PetscInt i, j, k;
-	PetscInt n, d, gp, gpi, npe;
+	PetscInt n, d, gp, gpi;
 	PetscInt ix[NPE * DIM];
 	double stress[NVOI];
 	double be[NPE * DIM * NPE * DIM];
@@ -137,6 +136,7 @@ PetscErrorCode assembly_res(Vec b)
 	ierr = VecGetArray(b_loc, &b_arr);CHKERRQ(ierr);
 
 	const PetscInt *eix;
+	PetscInt ie, nelem, npe;
 	ierr = DMDAGetElements(da, &nelem, &npe, &eix); CHKERRQ(ierr);
 
 	for(ie = 0; ie < nelem; ++ie) {
@@ -166,11 +166,13 @@ PetscErrorCode assembly_res(Vec b)
 	ierr = VecRestoreArray(b_loc, &b_arr); CHKERRQ(ierr);
 	ierr = VecDestroy(&b_loc);
 
+	ierr = calc_force(da, b, force);
+
+	//VecView(b, PETSC_VIEWER_STDOUT_WORLD);
+
 	ierr = apply_bc_on_res(b);
 
 	ierr = VecScale(b, -1.); CHKERRQ(ierr);
-
-	//VecView(b, PETSC_VIEWER_STDOUT_WORLD);
 
 	return ierr;
 }

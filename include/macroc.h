@@ -40,9 +40,9 @@
 #define TIME_STEPS     1
 #define VTU_FREQ       -1
 #define DT             0.001
-#define NX             10
-#define NY             10
-#define NZ             10
+#define NX_CONST       5
+#define NY_CONST       5
+#define NZ_CONST       5
 #define LX             10.0
 #define LY             1.0
 #define LZ             1.0
@@ -80,6 +80,8 @@ PetscInt nbcs;
 PetscInt nbcs_positive;
 PetscReal rad;
 
+PetscInt NX, NY, NZ; // Total number of nodes in each direction
+
 DM da;
 PC pc;
 KSP ksp;
@@ -90,7 +92,7 @@ PetscErrorCode init();
 PetscErrorCode finish();
 PetscErrorCode set_strains();
 PetscErrorCode assembly_jac(Mat A);
-PetscErrorCode assembly_res(Vec b);
+PetscErrorCode assembly_res(Vec b, PetscReal *force);
 PetscErrorCode solve_Ax(KSP ksp, Vec b, Vec x);
 
 void calc_B(int gp, double B[6][NPE * DIM]);
@@ -111,5 +113,9 @@ PetscErrorCode bc_init(DM da, PetscInt **_index_dirichlet, PetscInt *_nbcs, Pets
 PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet, PetscInt *_nbcs);
 PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet, PetscInt *_nbcs);
 PetscErrorCode bc_finish(PetscInt *index_dirichlet);
+
+PetscErrorCode calc_force(DM da, Vec b, PetscReal *force);
+PetscErrorCode calc_force_bending(DM da, PetscReal *_force_per_mpi);
+PetscErrorCode calc_force_circle(DM da, PetscReal *_force_per_mpi);
 
 #endif

@@ -43,7 +43,6 @@ PetscErrorCode apply_bc_on_u(int time_step, Vec u)
 
 	}
 
-
 	//VecView(u, PETSC_VIEWER_STDOUT_WORLD);
 	return ierr;
 }
@@ -56,13 +55,11 @@ PetscErrorCode bc_apply_on_u_bending(double U, Vec u)
 	PetscInt i, j, k, d;
 	PetscInt si, sj, sk;
 	PetscInt nx, ny, nz;
-	PetscInt M, N, P;
 
 	ISLocalToGlobalMapping ltogm;
 	const PetscInt *g_idx;
 	ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
 	ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
-	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
 
 	bc_vals = malloc(nbcs * sizeof(PetscReal));
@@ -74,7 +71,7 @@ PetscErrorCode bc_apply_on_u_bending(double U, Vec u)
 				for (d = 0; d < DIM; ++d)
 					bc_vals[index++] =  0.;
 
-	if (si + nx == M) /* X = LX */
+	if (si + nx == NX) /* X = LX */
 		for (k = 0; k < nz; ++k)
 			for (j = 0; j < ny; ++j)
 				for (d = 0; d < DIM; ++d)
@@ -97,13 +94,11 @@ PetscErrorCode bc_apply_on_u_circle(double U, Vec u)
 	PetscInt i, j, k, d;
 	PetscInt si, sj, sk;
 	PetscInt nx, ny, nz;
-	PetscInt M, N, P;
 
 	ISLocalToGlobalMapping ltogm;
 	const PetscInt *g_idx;
 	ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
 	ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
-	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
 
 	bc_vals = malloc(nbcs * sizeof(PetscReal));
@@ -115,7 +110,7 @@ PetscErrorCode bc_apply_on_u_circle(double U, Vec u)
 			for (d = 0; d < DIM; ++d)
 				bc_vals[index++] =  0.;
 
-	if (si + nx == M && sj == 0) /* X = LX & Y = 0 (ALONG Z) */
+	if (si + nx == NX && sj == 0) /* X = LX & Y = 0 (ALONG Z) */
 		for (k = 0; k < nz; ++k)
 			for (d = 0; d < DIM; ++d)
 				bc_vals[index++] =  0.;
@@ -125,13 +120,13 @@ PetscErrorCode bc_apply_on_u_circle(double U, Vec u)
 			for (d = 0; d < DIM; ++d)
 				bc_vals[index++] =  0.;
 
-	if (sk + nz == P && sj == 0) /* Z = LZ & Y = 0 (ALONG X) */
+	if (sk + nz == NZ && sj == 0) /* Z = LZ & Y = 0 (ALONG X) */
 		for (i = 1; i < nx - 1; ++i)
 			for (d = 0; d < DIM; ++d)
 				bc_vals[index++] =  0.;
 
 
-	if (sj + ny == N) { /* Y = LY (INSIDE CIRCLE) */
+	if (sj + ny == NY) { /* Y = LY (INSIDE CIRCLE) */
 		for (i = 0; i < nx; ++i) {
 			for (k = 0; k < nz; ++k) {
 				double x = lx / 2. - ((si + i) * dx + dx / 2.);
@@ -201,7 +196,6 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet,
 	PetscInt si, sj, sk;
 	PetscInt nx, ny, nz;
 	PetscInt i, j, k, d;
-	PetscInt M, N, P;
 	PetscInt nbcs;
 	PetscInt *ix;
 
@@ -210,7 +204,6 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet,
 	ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
 	ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
 
-	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
 
 	nbcs = 2 * ny * nz * DIM;
@@ -234,7 +227,7 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet,
 	}
 
 
-	if (si + nx == M) {
+	if (si + nx == NX) {
 		i = nx - 1; /* X = LX */
 		for (k = 0; k < nz; ++k) {
 			for (j = 0; j < ny; ++j) {
@@ -248,18 +241,19 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet,
 
 	*_index_dirichlet = ix;
 	*_nbcs = nbcs;
+
+	ierr = ISLocalToGlobalMappingRestoreIndices(ltogm, &g_idx); CHKERRQ(ierr);
+
 	return ierr;
 }
 
-
 PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
-			       PetscInt *_nbcs)
+			      PetscInt *_nbcs)
 {
 	PetscErrorCode ierr;
 	PetscInt si, sj, sk;
 	PetscInt nx, ny, nz;
 	PetscInt i, j, k, d;
-	PetscInt M, N, P;
 	PetscInt nbcs;
 	PetscInt *ix;
 
@@ -268,7 +262,6 @@ PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
 	ierr = DMGetLocalToGlobalMapping(da, &ltogm); CHKERRQ(ierr);
 	ierr = ISLocalToGlobalMappingGetIndices(ltogm, &g_idx); CHKERRQ(ierr);
 
-	ierr = DMDAGetInfo(da, 0, &M, &N, &P, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	ierr = DMDAGetGhostCorners(da, &si, &sj, &sk, &nx, &ny, &nz); CHKERRQ(ierr);
 
 	nbcs = (2 * nx + 2 * nz) * DIM + nx * nz;
@@ -289,7 +282,7 @@ PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
 		}
 	}
 
-	if (si + nx == M && sj == 0) { /* X = LX & Y = 0 (ALONG Z) */
+	if (si + nx == NX && sj == 0) { /* X = LX & Y = 0 (ALONG Z) */
 		i = nx - 1;
 		j = 0;
 		for (k = 0; k < nz; ++k) {
@@ -309,7 +302,7 @@ PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
 		}
 	}
 
-	if (sk + nz == P && sj == 0) { /* Z = LZ & Y = 0 (ALONG X) */
+	if (sk + nz == NZ && sj == 0) { /* Z = LZ & Y = 0 (ALONG X) */
 		k = nz - 1;
 		j = 0;
 		for (i = 1; i < nx - 1; ++i) {
@@ -320,7 +313,7 @@ PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet,
 	}
 
 
-	if (sj + ny == N) { /* Y = LY (INSIDE CIRCLE) */
+	if (sj + ny == NY) { /* Y = LY (INSIDE CIRCLE) */
 		j = ny - 1;
 		for (i = 0; i < nx; ++i) {
 			for (k = 0; k < nz; ++k) {
