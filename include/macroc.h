@@ -113,7 +113,7 @@ PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet, PetscInt *_nbc
 PetscErrorCode bc_finish(PetscInt *index_dirichlet);
 
 PetscErrorCode calc_force(DM da, Vec b, PetscReal *force);
-PetscErrorCode calc_force_bending(DM da, Vec b, PetscReal *force);
-PetscErrorCode calc_force_circle(DM da, Vec b, PetscReal *force);
+PetscErrorCode calc_force_bending(DM da, PetscReal *_force_per_mpi);
+PetscErrorCode calc_force_circle(DM da, PetscReal *_force_per_mpi);
 
 #endif
