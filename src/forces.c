@@ -22,7 +22,7 @@
 #include "macroc.h"
 
 
-PetscErrorCode calc_force(DM da, Vec b, PetscReal *_force)
+double calc_force(DM da)
 {
 	PetscErrorCode ierr;
 	PetscReal mpi_force;
@@ -42,11 +42,11 @@ PetscErrorCode calc_force(DM da, Vec b, PetscReal *_force)
 			break;
 	}
 
-	int force = 0.0;
-	ierr = MPI_Reduce(&mpi_force, &force, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-	*_force = force;
+	double force = 0.0;
 
-	return ierr;
+	ierr = MPI_Reduce(&mpi_force, &force, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+	return force;
 }
 
 

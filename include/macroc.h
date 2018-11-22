@@ -123,7 +123,7 @@ PetscErrorCode init();
 PetscErrorCode finish();
 PetscErrorCode set_strains();
 PetscErrorCode assembly_jac(Mat A);
-PetscErrorCode assembly_res(Vec b, PetscReal *force);
+PetscErrorCode assembly_res(Vec b);
 PetscErrorCode solve_Ax(KSP ksp, Vec b, Vec x);
 
 void calc_B(int gp, double B[6][NPE * DIM]);
@@ -131,7 +131,8 @@ void calc_B(int gp, double B[6][NPE * DIM]);
 PetscErrorCode write_pvtu(const char *filename);
 PetscErrorCode minmax_elems_across_mpis(DM da, int *min, int *max);
 
-PetscErrorCode apply_bc_on_u(int time_step, Vec u);
+double get_displacement(int time_s);
+PetscErrorCode apply_bc_on_u(double U, Vec u);
 PetscErrorCode bc_apply_on_u_bending(double U, Vec u);
 
 PetscErrorCode apply_bc_on_jac(Mat A);
@@ -145,7 +146,7 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet, PetscInt *_nb
 PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet, PetscInt *_nbcs);
 PetscErrorCode bc_finish(PetscInt *index_dirichlet);
 
-PetscErrorCode calc_force(DM da, Vec b, PetscReal *force);
+double calc_force(DM da);
 PetscErrorCode calc_force_bending(DM da, PetscReal *_mpi_force);
 PetscErrorCode calc_force_circle(DM da, PetscReal *_mpi_force);
 

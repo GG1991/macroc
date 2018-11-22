@@ -25,34 +25,32 @@
 int main(int argc,char **args)
 {
 	PetscErrorCode ierr;
+	double t1, t2;
+	double norm;
+	int time_s, newton_it;
+	FILE *file_out;
 
-	ierr = PetscInitialize(&argc, &args, (char*)0, help); if(ierr) return ierr;
+	ierr = PetscInitialize(&argc, &args, (char*)0, help);
+	if(ierr)
+		return ierr;
 
-	PetscPrintf(PETSC_COMM_WORLD,
-		    "\nMacroC : A HPC for FE2 Multi-scale Simulations\n\n");
-
+	PetscFOpen(PETSC_COMM_WORLD, "f_vs_d.dat", "w", &file_out);
+	PetscPrintf(PETSC_COMM_WORLD, "\nMacroC : A HPC for FE2 Multi-scale Simulations\n\n");
 	PetscPrintf(PETSC_COMM_WORLD, " >>> Starting Initialization : \n\n");
-
-	int rank;
-	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
 	ierr = init();
 
 	PetscPrintf(PETSC_COMM_WORLD, "\n <<< Finishing Initialization.\n\n\n");
-
 	PetscPrintf(PETSC_COMM_WORLD, " >>> Starting Calculation.\n");
 
-	double t1, t2;
 	t1 = MPI_Wtime();
 
-	PetscReal displac, force;
-
-	double norm;
-	int time_s, newton_it;
 	for(time_s = 0; time_s < ts; ++time_s) {
 
 		PetscPrintf(PETSC_COMM_WORLD, "\n\nTime Step = %d\n", time_s);
-		ierr = apply_bc_on_u(time_s, u);
+
+		double U = get_displacement(time_s);
+		ierr = apply_bc_on_u(U, u);
 
 		newton_it = 0;
 		while(newton_it < newton_max_its) {
@@ -64,9 +62,9 @@ int main(int argc,char **args)
 
 			PetscPrintf(PETSC_COMM_WORLD, "Assemblying RHS\n");
 
-			ierr = assembly_res(b, &force);
+			ierr = assembly_res(b);
 			ierr = VecNorm(b, NORM_2, &norm); CHKERRQ(ierr);
-			PetscPrintf(PETSC_COMM_WORLD, "|RES| = %e\tForce = %e\n", norm, force);
+			PetscPrintf(PETSC_COMM_WORLD, "|RES| = %e\n", norm);
 			if (norm < newton_min_tol) break;
 
 			ierr = assembly_jac(A);
@@ -77,6 +75,15 @@ int main(int argc,char **args)
 			newton_it ++;
 		}
 		micropp_C_update_vars();
+
+
+		/* Output the solution */
+
+		double force = calc_force(da);
+
+		PetscFPrintf(PETSC_COMM_WORLD, file_out, "%d\t%e\t%e\t%e\n",
+			     time_s, time_s * dt, U, force);
+
 
 		if (vtu_freq > 0 && time_s % vtu_freq == 0) {
 
@@ -91,9 +98,11 @@ int main(int argc,char **args)
 
 	t2 = MPI_Wtime();
 
-	PetscPrintf(MPI_COMM_WORLD,
+	PetscPrintf(PETSC_COMM_WORLD,
 		    "\n\n <<< Calculation Finished OK\n\n"
 		    "Elapsed time : %f\n", t2 - t1);
+
+	ierr = PetscFClose(PETSC_COMM_WORLD, file_out);
 
 	ierr = finish();
 	return ierr;
