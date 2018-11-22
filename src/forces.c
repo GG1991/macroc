@@ -22,39 +22,46 @@
 #include "macroc.h"
 
 
-PetscErrorCode calc_force(DM da, Vec b, PetscReal *force)
+PetscErrorCode calc_force(DM da, Vec b, PetscReal *_force)
 {
 	PetscErrorCode ierr;
-	PetscReal force_per_mpi;
+	PetscReal mpi_force;
 
 	switch (bc_type) {
+
 		case (BC_BENDING):
-			ierr = calc_force_bending(da, &force_per_mpi);
+			ierr = calc_force_bending(da, &mpi_force);
 			break;
 
 		case (BC_CIRCLE):
-			ierr = calc_force_circle(da, &force_per_mpi);
+			ierr = calc_force_circle(da, &mpi_force);
 			break;
 
 		default:
+			ierr = PETSC_ERR_ARG_WRONG;
 			break;
 	}
 
-	*force = 0.0;
-	ierr = MPI_Reduce(&force_per_mpi, force, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+	int force = 0.0;
+	ierr = MPI_Reduce(&mpi_force, &force, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+	*_force = force;
 
 	return ierr;
 }
 
 
-PetscErrorCode calc_force_bending(DM da, PetscReal *_force_per_mpi)
+/*
+   Integrates the average stress in the elements next to the boundary x = Lx
+
+*/
+
+PetscErrorCode calc_force_bending(DM da, PetscReal *_mpi_force)
 {
-	/* Integrates the average stress in the elements next to the boundary x = Lx */
 
 	PetscErrorCode ierr;
 	PetscInt gp, gpi;
 	PetscInt e, ey, ez;
-	PetscReal force_per_mpi = 0.0;
+	PetscReal mpi_force = 0.0;
 	PetscReal stress_ave[6];
 	PetscReal stress[6];
 
@@ -82,7 +89,7 @@ PetscErrorCode calc_force_bending(DM da, PetscReal *_force_per_mpi)
 						stress_ave[i] += stress[i];
 
 				}
-				force_per_mpi += stress_ave[3] * dy * dz;
+				mpi_force += stress_ave[3] * dy * dz;
 
 			}
 		}
@@ -90,21 +97,29 @@ PetscErrorCode calc_force_bending(DM da, PetscReal *_force_per_mpi)
 
 	/* int rank;
 	 * ierr  = MPI_Comm_rank(PETSC_COMM_WORLD, &rank); CHKERRQ(ierr);
-	 * PetscSynchronizedPrintf(PETSC_COMM_WORLD, "rank:%d\tforce_mpi:%lf\n", rank, force_per_mpi);
+	 * PetscSynchronizedPrintf(PETSC_COMM_WORLD, "rank:%d\tforce_mpi:%lf\n", rank, mpi_force);
 	 * PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
 	 */
 
-	*_force_per_mpi = force_per_mpi;
+	*_mpi_force = mpi_force;
 
 	return ierr;
 }
 
-PetscErrorCode calc_force_circle(DM da, PetscReal *_force_per_mpi)
+
+/*
+   Integrates the average stress in the elements in the boundary y = Ly
+   and in the circle x^2 + z^2 < rad
+
+*/
+
+PetscErrorCode calc_force_circle(DM da, PetscReal *_mpi_force)
 {
+
 	PetscErrorCode ierr;
 	PetscInt gp, gpi;
 	PetscInt e, ex, ez;
-	PetscReal force_per_mpi = 0.0;
+	PetscReal mpi_force = 0.0;
 	PetscReal stress_ave[6];
 	PetscReal stress[6];
 
@@ -139,14 +154,14 @@ PetscErrorCode calc_force_circle(DM da, PetscReal *_force_per_mpi)
 							stress_ave[i] += stress[i];
 
 					}
-					force_per_mpi += stress_ave[1] * dx * dz;
+					mpi_force += stress_ave[1] * dx * dz;
 				}
 
 			}
 		}
 	}
 
-	*_force_per_mpi = force_per_mpi;
+	*_mpi_force = mpi_force;
 
 	return ierr;
 }

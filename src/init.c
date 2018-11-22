@@ -24,12 +24,16 @@
 
 PetscErrorCode init()
 {
+
 	PetscErrorCode ierr;
-	char mess[64];
 	PetscInt micro_n = 5;
 	PetscInt micro_type = 5;
 	PetscReal micro_mat_1[4] = { 1.0e7, 0.25, 1.0e4, 1.0e7 };
 	PetscReal micro_mat_2[4] = { 1.0e9, 0.25, 1.0e4, 1.0e7 };
+
+	int rank, nproc;
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &nproc);
 
 	/*
 	 * MIC_SPHERE = 0
@@ -41,13 +45,6 @@ PetscErrorCode init()
 	 * MIC_QUAD_FIB_XZ_BROKEN_X = 7
 	 */
 
-	int rank, nproc;
-	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-	MPI_Comm_size(MPI_COMM_WORLD, &nproc);
-
-	PetscPrintf(PETSC_COMM_WORLD,
-		    "\nMacroC : A HPC for FE2 Multi-scale Simulations\n\n");
-
 	final_time = FINAL_TIME;
 	ts = TIME_STEPS;
 	dt = DT;
@@ -58,6 +55,8 @@ PetscErrorCode init()
 	NX = NX_CONST;
 	NY = NY_CONST;
 	NZ = NZ_CONST;
+
+	/* Read command line options */
 
 	vtu_freq = VTU_FREQ;
 	newton_max_its = NEWTON_MAX_ITS;
@@ -80,9 +79,9 @@ PetscErrorCode init()
 	PetscOptionsGetRealArray(NULL, NULL, "-micro_mat_1", micro_mat_1, &nmax, NULL);
 	PetscOptionsGetRealArray(NULL, NULL, "-micro_mat_2", micro_mat_2, &nmax, NULL);
 
-	DMBoundaryType bx = DM_BOUNDARY_NONE, by = DM_BOUNDARY_NONE,
-		       bz = DM_BOUNDARY_NONE;
-	ierr = DMDACreate3d(PETSC_COMM_WORLD, bx, by, bz, DMDA_STENCIL_BOX,
+	ierr = DMDACreate3d(PETSC_COMM_WORLD,
+			    DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
+			    DMDA_STENCIL_BOX,
 			    NX, NY, NZ,
 			    PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,
 			    DIM, 1, NULL, NULL, NULL, &da);
@@ -102,7 +101,8 @@ PetscErrorCode init()
 	ierr = VecZeroEntries(b); CHKERRQ(ierr);
 	ierr = VecZeroEntries(du); CHKERRQ(ierr);
 
-	ierr = DMDAGetInfo(da, 0, &NX, &NY, &NZ, 0, 0, 0, 0, 0, 0, 0, 0, 0); CHKERRQ(ierr);
+	ierr = DMDAGetInfo(da, 0, &NX, &NY, &NZ,
+			   &NP_X, &NP_Y, &NP_Y, 0, 0, 0, 0, 0, 0); CHKERRQ(ierr);
 
 	PetscPrintf(PETSC_COMM_WORLD, "Boundary Condition : ");
 	switch (bc_type) {
@@ -124,12 +124,20 @@ PetscErrorCode init()
 		    "Number of Nodes    : %ld\n", NX * NY * NZ);
 	PetscPrintf(PETSC_COMM_WORLD,
 		    "Number of DOFs     : %ld\n\n", (NX * NY * NZ) * DIM);
+	PetscPrintf(PETSC_COMM_WORLD,
+		    "NP_X : %ld\tNP_Y : %ld\tNP_Z : %ld\n", NP_X, NP_Y, NP_Z);
+	PetscPrintf(PETSC_COMM_WORLD,
+		    "NX   : %ld\tNY   : %ld\tNZ   : %ld\n\n", NX, NY, NZ);
+
 
 	dx = lx / (NX - 1);
 	dy = ly / (NY - 1);
 	dz = lz / (NZ - 1);
 	wg = dx * dy * dz / NPE;
 	rad = 1.;
+
+
+	/* Prepares the solver */
 
 	KSPType ksptype;
 	PetscReal rtol, abstol, dtol;
@@ -146,18 +154,26 @@ PetscErrorCode init()
 	ierr = KSPGetTolerances(ksp, &rtol, &abstol, &dtol, &maxits);
 	ierr = KSPGetType(ksp, &ksptype);
 	PetscPrintf(PETSC_COMM_WORLD,
-		    "KSP Info: type = %s\trtol = %e\t\
-		    abstol = %e\tdtol = %e\tmaxits = %d\n",
+		    "KSP Info: type = %s\trtol = %e\t"
+		    "abstol = %e\tdtol = %e\tmaxits = %d\n\n",
 		    ksptype, rtol, abstol, dtol, maxits);
 
-	PetscInt nex, ney, nez;
+
 	ierr = DMDAGetElementsSizes(da, &nex, &ney, &nez); CHKERRQ(ierr);
+	ierr = DMDAGetGhostCorners(da, &si_local, &sj_local, &sk_local,
+				   &nx_local, &ny_local, &nz_local); CHKERRQ(ierr);
+	ierr = DMDAGetGhostCorners(da, &si_ghost, &sj_ghost, &sk_ghost,
+				   &nx_ghost, &ny_ghost, &nz_ghost); CHKERRQ(ierr);
+
 
 	PetscSynchronizedPrintf(PETSC_COMM_WORLD,
 				"rank:%d\tne:%d\tnex:%d\tney:%d\tnez:%d\n",
-				rank, (int) (nex * ney * nez), (int) nex,
-				(int) ney, (int) nez);
+				rank, (int) (nex * ney * nez),
+				(int) nex, (int) ney, (int) nez);
 	PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
+
+
+	/* Measure the balance between processes */
 
 	int min, max;
 	minmax_elems_across_mpis(da, &min, &max);
@@ -165,12 +181,17 @@ PetscErrorCode init()
 		    "Min : %d Max : %d Unbalance (Max - Min) / Max = %3.1lf %\n",
 		    min, max, 1. * (max - min) / (1. * max) * 100.);
 
-	ierr = bc_init(da, &index_dirichlet, &nbcs, &index_dirichlet_positive, &nbcs_positive);
+	ierr = bc_init(da, &index_dirichlet, &nbcs,
+		       &index_dirichlet_positive, &nbcs_positive);
 
+
+	/* Prepares micropp (Constructor calls) */
 
 	// Initializes <materials> declared in <micropp_c_wrapper.h>
-	micropp_C_material_set(0, micro_mat_1[0], micro_mat_1[1], micro_mat_1[2], micro_mat_1[3], 1);
-	micropp_C_material_set(1, micro_mat_2[0], micro_mat_2[1], micro_mat_2[2], micro_mat_2[3], 0);
+	micropp_C_material_set(0, micro_mat_1[0], micro_mat_1[1],
+			       micro_mat_1[2], micro_mat_1[3], 1);
+	micropp_C_material_set(1, micro_mat_2[0], micro_mat_2[1],
+			       micro_mat_2[2], micro_mat_2[3], 0);
 	PetscPrintf(PETSC_COMM_WORLD, "Material Values : \n");
 
 	if(!rank) {
