@@ -128,6 +128,7 @@ PetscErrorCode init()
 	PetscPrintf(PETSC_COMM_WORLD,
 		    "NX   : %ld\tNY   : %ld\tNZ   : %ld\n\n", NX, NY, NZ);
 
+	PetscFOpen(PETSC_COMM_WORLD, "gauss_evolution.dat", "w", &file_gps);
 
 	dx = lx / (NX - 1);
 	dy = ly / (NY - 1);
@@ -221,6 +222,8 @@ PetscErrorCode finish()
 	ierr = VecDestroy(&b); CHKERRQ(ierr);
 	ierr = VecDestroy(&du); CHKERRQ(ierr);
 	ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
+
+	PetscFClose(PETSC_COMM_WORLD, file_gps);
 
 	ierr = bc_finish(index_dirichlet); CHKERRQ(ierr);
 

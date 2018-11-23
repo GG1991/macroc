@@ -70,6 +70,7 @@ static double xg[8][3] = {
 int rank, nproc;
 double lx, ly, lz, dx, dy, dz;
 double wg;
+FILE *file_gps;
 
 PetscReal dt, final_time;
 PetscReal newton_min_tol;
@@ -149,7 +150,7 @@ PetscErrorCode bc_init_bending(DM da, PetscInt **_index_dirichlet, PetscInt *_nb
 PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet, PetscInt *_nbcs);
 PetscErrorCode bc_finish(PetscInt *index_dirichlet);
 
-int64_t get_non_linear_gps(void);
+int64_t get_non_linear_gps(int time_s);
 
 double calc_force(DM da);
 PetscErrorCode calc_force_bending(DM da, PetscReal *_mpi_force);

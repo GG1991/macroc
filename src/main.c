@@ -84,7 +84,7 @@ int main(int argc,char **args)
 		PetscFPrintf(PETSC_COMM_WORLD, file_out, "%d\t%e\t%e\t%e\n",
 			     time_s, time_s * dt, U, force);
 
-		int64_t non_linear_micro_gps = get_non_linear_gps();
+		int64_t non_linear_micro_gps = get_non_linear_gps(time_s);
 		PetscPrintf(PETSC_COMM_WORLD, "Non-Linear Gauss points : %ld\n", non_linear_micro_gps);
 
 
