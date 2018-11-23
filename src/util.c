@@ -66,16 +66,22 @@ PetscErrorCode minmax_elems_across_mpis(DM da, int *min, int *max) {
 
 /*
  * Returns the number of non_linear Gauss points at the micro-scale
+ * and writes a file that in each time row has the number of non-linear
+ * Gauss Points for each MPI process.
  */
 
-PetscInt get_non_linear_gps(void)
+int64_t get_non_linear_gps(void)
 {
 	PetscErrorCode ierr;
-	PetscInt non_linear = 0;
 
-	PetscInt mpi_non_linear = micropp_C_get_non_linear_gps();
+	int64_t mpi_non_linear = (int64_t) micropp_C_get_non_linear_gps();
+	int64_t *mpi_non_linear_arr = malloc (nproc * sizeof(int64_t));
 
-	ierr = MPI_Reduce(&mpi_non_linear, &non_linear, 1, MPI_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Gather(&mpi_non_linear, 1, MPI_LONG, mpi_non_linear_arr, 1, MPI_LONG, 0, MPI_COMM_WORLD);
 
-	return non_linear;
+	int64_t i, count = 0;
+	for (i = 0; i < nproc; ++i)
+		count += mpi_non_linear_arr[i];
+
+	return count;
 }
