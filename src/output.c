@@ -67,6 +67,8 @@ PetscErrorCode write_pvtu(const char file_prefix[])
 		     "NumberOfComponents=\"1\"/>\n"
 		     "  <PDataArray type=\"Float64\"   Name=\"cost\"   "
 		     "NumberOfComponents=\"1\"/>\n"
+		     "  <PDataArray type=\"Int32\"   Name=\"non-linear\"   "
+		     "NumberOfComponents=\"1\"/>\n"
 		     "<PDataArray type=\"Float64\" Name=\"strain\" "
 		     "NumberOfComponents=\"6\"/>\n"
 		     "<PDataArray type=\"Float64\" Name=\"stress\" "
@@ -181,6 +183,8 @@ PetscErrorCode write_pvtu(const char file_prefix[])
 		PetscFPrintf(PETSC_COMM_SELF, fp, "%d\t", rank);
 	PetscFPrintf(PETSC_COMM_SELF, fp, "\n</DataArray>\n");
 
+	/*------------------------------------------------------------*/
+
 	PetscFPrintf(PETSC_COMM_SELF, fp,
 		     "<DataArray type=\"Float64\" Name=\"cost\" "
 		     "NumberOfComponents=\"1\" format=\"ascii\">\n");
@@ -194,6 +198,24 @@ PetscErrorCode write_pvtu(const char file_prefix[])
 		PetscFPrintf(PETSC_COMM_SELF, fp, "%lf\t", cost / NGP);
 	}
 	PetscFPrintf(PETSC_COMM_SELF, fp, "\n</DataArray>\n");
+
+	/*------------------------------------------------------------*/
+
+	PetscFPrintf(PETSC_COMM_SELF, fp,
+		     "<DataArray type=\"Int32\" Name=\"non-linear\" "
+		     "NumberOfComponents=\"1\" format=\"ascii\">\n");
+
+	for (e = 0; e < nelem; ++e) {
+		int non_linear = 0.;
+		for (gp = 0; gp < NGP; ++gp) {
+			int gpi = e * NPE + gp;
+			non_linear += 1. * micropp_C_is_non_linear(gpi);
+		}
+		PetscFPrintf(PETSC_COMM_SELF, fp, "%d\t", non_linear);
+	}
+	PetscFPrintf(PETSC_COMM_SELF, fp, "\n</DataArray>\n");
+
+	/*------------------------------------------------------------*/
 
 	PetscFPrintf(PETSC_COMM_SELF, fp,
 		     "<DataArray type=\"Float64\" Name=\"strain\" "

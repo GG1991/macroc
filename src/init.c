@@ -26,12 +26,11 @@ PetscErrorCode init()
 {
 
 	PetscErrorCode ierr;
-	PetscInt micro_n = 5;
-	PetscInt micro_type = 5;
+	PetscInt micro_n = 6;
+	PetscInt micro_type = 1;
 	PetscReal micro_mat_1[4] = { 1.0e7, 0.25, 1.0e4, 1.0e7 };
 	PetscReal micro_mat_2[4] = { 1.0e9, 0.25, 1.0e4, 1.0e7 };
 
-	int rank, nproc;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &nproc);
 
@@ -129,6 +128,7 @@ PetscErrorCode init()
 	PetscPrintf(PETSC_COMM_WORLD,
 		    "NX   : %ld\tNY   : %ld\tNZ   : %ld\n\n", NX, NY, NZ);
 
+	PetscFOpen(PETSC_COMM_WORLD, "gauss_evolution.dat", "w", &file_gps);
 
 	dx = lx / (NX - 1);
 	dy = ly / (NY - 1);
@@ -188,9 +188,11 @@ PetscErrorCode init()
 	/* Prepares micropp (Constructor calls) */
 
 	// Initializes <materials> declared in <micropp_c_wrapper.h>
-	micropp_C_material_set(0, micro_mat_1[0], micro_mat_1[1],
+	micropp_C_material_set(0,
+			       micro_mat_1[0], micro_mat_1[1],
 			       micro_mat_1[2], micro_mat_1[3], 1);
-	micropp_C_material_set(1, micro_mat_2[0], micro_mat_2[1],
+	micropp_C_material_set(1,
+			       micro_mat_2[0], micro_mat_2[1],
 			       micro_mat_2[2], micro_mat_2[3], 0);
 	PetscPrintf(PETSC_COMM_WORLD, "Material Values : \n");
 
@@ -220,6 +222,8 @@ PetscErrorCode finish()
 	ierr = VecDestroy(&b); CHKERRQ(ierr);
 	ierr = VecDestroy(&du); CHKERRQ(ierr);
 	ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
+
+	PetscFClose(PETSC_COMM_WORLD, file_gps);
 
 	ierr = bc_finish(index_dirichlet); CHKERRQ(ierr);
 
