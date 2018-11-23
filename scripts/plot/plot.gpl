@@ -1,0 +1,6 @@
+#!/usr/bin/gnuplot
+
+set term png
+set output "non_linear_cpus.png"
+
+plot "data.dat" w lp lc rgb "green" notitle
