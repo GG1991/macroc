@@ -32,10 +32,6 @@ PetscErrorCode minmax_elems_across_mpis(DM da, int *min, int *max) {
 
 	int *nelems_all = NULL;
 
-	int rank, nproc;
-	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-	MPI_Comm_size(MPI_COMM_WORLD, &nproc);
-
 	if (rank == 0)
 		nelems_all = malloc(nproc * sizeof(int));
 

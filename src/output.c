@@ -24,7 +24,6 @@
 
 PetscErrorCode write_pvtu(const char file_prefix[])
 {
-	int rank, nproc;
 	char name_pvtu[PETSC_MAX_PATH_LEN];
 	char name_vtu[PETSC_MAX_PATH_LEN];
 	FILE *fp = NULL;
@@ -33,8 +32,6 @@ PetscErrorCode write_pvtu(const char file_prefix[])
 	PetscInt i, j, k, e, gp;
 	PetscInt n, N;
 
-	MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-	MPI_Comm_size(PETSC_COMM_WORLD, &nproc);
 	ierr = PetscSNPrintf(name_pvtu,
 			     sizeof(name_pvtu), "%s.pvtu",
 			     file_prefix, rank); CHKERRQ(ierr);

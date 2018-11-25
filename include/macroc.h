@@ -36,18 +36,18 @@
 #define NEWTON_MIN_TOL 1.0e-1
 #define NEWTON_MAX_ITS 2
 
-#define FINAL_TIME     10.0
+#define FINAL_TIME     1.0
 #define TIME_STEPS     1
 #define VTU_FREQ       -1
 #define DT             0.001
-#define NX_CONST       5
-#define NY_CONST       5
-#define NZ_CONST       5
-#define LX             10.0
+#define NX_CONST       10
+#define NY_CONST       3
+#define NZ_CONST       10
+#define LX             50.0
 #define LY             1.0
-#define LZ             1.0
+#define LZ             50.0
 
-#define U_MAX          -0.8
+#define U_MAX          -1.0
 #define CONSTXG        0.577350269189626
 
 

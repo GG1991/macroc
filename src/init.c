@@ -60,7 +60,7 @@ PetscErrorCode init()
 	vtu_freq = VTU_FREQ;
 	newton_max_its = NEWTON_MAX_ITS;
 	newton_min_tol = NEWTON_MIN_TOL;
-	bc_type = BC_BENDING;
+	bc_type = BC_CIRCLE;
 
 	PetscOptionsGetReal(NULL, NULL, "-dt", &dt, NULL);
 	PetscOptionsGetReal(NULL, NULL, "-lx", &lx, NULL);

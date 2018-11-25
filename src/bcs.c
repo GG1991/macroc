@@ -54,12 +54,7 @@ double get_displacement(int time_s)
 	double time = time_s * dt;
 	double U;
 
-	if(time < final_time / 2.)
-		U = U_MAX * (time / final_time);
-	else
-		U = U_MAX;
-
-	return U;
+	U = U_MAX * (time / final_time);
 }
 
 
