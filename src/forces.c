@@ -95,8 +95,7 @@ PetscErrorCode calc_force_bending(DM da, PetscReal *_mpi_force)
 		}
 	}
 
-	/* int rank;
-	 * ierr  = MPI_Comm_rank(PETSC_COMM_WORLD, &rank); CHKERRQ(ierr);
+	/*
 	 * PetscSynchronizedPrintf(PETSC_COMM_WORLD, "rank:%d\tforce_mpi:%lf\n", rank, mpi_force);
 	 * PetscSynchronizedFlush(PETSC_COMM_WORLD, PETSC_STDOUT);
 	 */

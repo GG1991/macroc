@@ -26,10 +26,10 @@ PetscErrorCode init()
 {
 
 	PetscErrorCode ierr;
-	PetscInt micro_n = 6;
+	PetscInt micro_n = 2;
 	PetscInt micro_type = 1;
 	PetscReal micro_mat_1[4] = { 1.0e7, 0.25, 1.0e4, 1.0e7 };
-	PetscReal micro_mat_2[4] = { 1.0e9, 0.25, 1.0e4, 1.0e7 };
+	PetscReal micro_mat_2[4] = { 1.0e7, 0.25, 1.0e4, 1.0e7 };
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -60,7 +60,7 @@ PetscErrorCode init()
 	vtu_freq = VTU_FREQ;
 	newton_max_its = NEWTON_MAX_ITS;
 	newton_min_tol = NEWTON_MIN_TOL;
-	bc_type = BC_BENDING;
+	bc_type = BC_CIRCLE;
 
 	PetscOptionsGetReal(NULL, NULL, "-dt", &dt, NULL);
 	PetscOptionsGetReal(NULL, NULL, "-lx", &lx, NULL);
@@ -140,11 +140,12 @@ PetscErrorCode init()
 	/* Prepares the solver */
 
 	KSPType ksptype;
-	PetscReal rtol, abstol, dtol;
-	PetscInt maxits;
+	PetscReal rtol = 1.0e-5, abstol = 1.0e-50, dtol = 1.0e4;
+	PetscInt maxits = 10000;
 
 	ierr = KSPCreate(PETSC_COMM_WORLD, &ksp); CHKERRQ(ierr);
 	ierr = KSPSetOperators(ksp, A, A); CHKERRQ(ierr);
+	ierr = KSPSetTolerances(ksp, rtol, abstol, dtol, maxits); CHKERRQ(ierr);
 	ierr = KSPSetType(ksp, KSPCG); CHKERRQ(ierr);
 	ierr = KSPGetPC(ksp, &pc); CHKERRQ(ierr);
 	ierr = PCSetType(pc, PCJACOBI); CHKERRQ(ierr);
@@ -193,7 +194,7 @@ PetscErrorCode init()
 			       micro_mat_1[2], micro_mat_1[3], 1);
 	micropp_C_material_set(1,
 			       micro_mat_2[0], micro_mat_2[1],
-			       micro_mat_2[2], micro_mat_2[3], 0);
+			       micro_mat_2[2], micro_mat_2[3], 1);
 	PetscPrintf(PETSC_COMM_WORLD, "Material Values : \n");
 
 	if(!rank) {
