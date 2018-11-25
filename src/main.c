@@ -36,12 +36,13 @@ int main(int argc,char **args)
 
 	PetscFOpen(PETSC_COMM_WORLD, "f_vs_d.dat", "w", &file_out);
 	PetscPrintf(PETSC_COMM_WORLD, "\nMacroC : A HPC for FE2 Multi-scale Simulations\n\n");
-	PetscPrintf(PETSC_COMM_WORLD, " >>> Starting Initialization : \n\n");
 
 	ierr = init();
 
-	PetscPrintf(PETSC_COMM_WORLD, "\n <<< Finishing Initialization.\n\n\n");
-	PetscPrintf(PETSC_COMM_WORLD, " >>> Starting Calculation.\n");
+	PetscPrintf(PETSC_COMM_WORLD,
+		    "------------------------------------------------------------\n"
+		    "STARTING CALCULATION...\n"
+		    "------------------------------------------------------------\n");
 
 	t1 = MPI_Wtime();
 
@@ -102,7 +103,11 @@ int main(int argc,char **args)
 	t2 = MPI_Wtime();
 
 	PetscPrintf(PETSC_COMM_WORLD,
-		    "\n\n <<< Calculation Finished OK\n\n"
+		    "\n\n"
+		    "------------------------------------------------------------\n"
+		    "FINISHING CALCULATION...\n"
+		    "------------------------------------------------------------\n");
+	PetscPrintf(PETSC_COMM_WORLD,
 		    "Elapsed time : %f\n", t2 - t1);
 
 	ierr = PetscFClose(PETSC_COMM_WORLD, file_out);

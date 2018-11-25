@@ -44,32 +44,22 @@ PetscErrorCode write_pvtu(const char file_prefix[])
 		     "byte_order=\"LittleEndian\">\n"
 		     "<PUnstructuredGrid GhostLevel=\"0\">\n"
 		     "<PPoints>\n"
-		     "  <PDataArray type=\"Float64\" Name=\"Position\" "
-		     "NumberOfComponents=\"3\"/>\n"
+		     "  <PDataArray type=\"Float64\" Name=\"Position\"   NumberOfComponents=\"3\"/>\n"
 		     "</PPoints>\n"
 		     "<PCells>\n"
-		     "  <PDataArray type=\"Int32\" Name=\"connectivity\" "
-		     "NumberOfComponents=\"1\"/>\n"
-		     "  <PDataArray type=\"Int32\" Name=\"offsets\"      "
-		     "NumberOfComponents=\"1\"/>\n"
-		     "  <PDataArray type=\"UInt8\" Name=\"types\"        "
-		     "NumberOfComponents=\"1\"/>\n"
+		     "  <PDataArray type=\"Int32\" Name=\"connectivity\" NumberOfComponents=\"1\"/>\n"
+		     "  <PDataArray type=\"Int32\" Name=\"offsets\"      NumberOfComponents=\"1\"/>\n"
+		     "  <PDataArray type=\"UInt8\" Name=\"types\"        NumberOfComponents=\"1\"/>\n"
 		     "</PCells>\n"
 		     "<PPointData Vectors=\"displ\">\n"
-		     "  <PDataArray type=\"Float64\" Name=\"displ\"    "
-		     "NumberOfComponents=\"3\" />\n"
+		     "  <PDataArray type=\"Float64\" Name=\"displ\"      NumberOfComponents=\"3\" />\n"
 		     "</PPointData>\n"
 		     "<PCellData>\n"
-		     "  <PDataArray type=\"Int32\"   Name=\"part\"   "
-		     "NumberOfComponents=\"1\"/>\n"
-		     "  <PDataArray type=\"Float64\"   Name=\"cost\"   "
-		     "NumberOfComponents=\"1\"/>\n"
-		     "  <PDataArray type=\"Int32\"   Name=\"non-linear\"   "
-		     "NumberOfComponents=\"1\"/>\n"
-		     "<PDataArray type=\"Float64\" Name=\"strain\" "
-		     "NumberOfComponents=\"6\"/>\n"
-		     "<PDataArray type=\"Float64\" Name=\"stress\" "
-		     "NumberOfComponents=\"6\"/>\n"
+		     "  <PDataArray type=\"Int32\"   Name=\"part\"       NumberOfComponents=\"1\"/>\n"
+		     "  <PDataArray type=\"Float64\" Name=\"cost\"       NumberOfComponents=\"1\"/>\n"
+		     "  <PDataArray type=\"Int32\"   Name=\"non-linear\" NumberOfComponents=\"1\"/>\n"
+		     "<PDataArray type=\"Float64\" Name=\"strain\"       NumberOfComponents=\"6\"/>\n"
+		     "<PDataArray type=\"Float64\" Name=\"stress\"       NumberOfComponents=\"6\"/>\n"
 		     "</PCellData>\n");
 
 	for (i = 0; i < nproc; ++i) {
@@ -203,10 +193,10 @@ PetscErrorCode write_pvtu(const char file_prefix[])
 		     "NumberOfComponents=\"1\" format=\"ascii\">\n");
 
 	for (e = 0; e < nelem; ++e) {
-		int non_linear = 0.;
+		int non_linear = 0;
 		for (gp = 0; gp < NGP; ++gp) {
 			int gpi = e * NPE + gp;
-			non_linear += 1. * micropp_C_is_non_linear(gpi);
+			non_linear += micropp_C_is_non_linear(gpi);
 		}
 		PetscFPrintf(PETSC_COMM_SELF, fp, "%d\t", non_linear);
 	}

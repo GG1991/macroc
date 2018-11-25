@@ -40,9 +40,9 @@
 #define TIME_STEPS     1
 #define VTU_FREQ       -1
 #define DT             0.001
-#define NX_CONST       10
+#define NX_CONST       40
 #define NY_CONST       3
-#define NZ_CONST       10
+#define NZ_CONST       40
 #define LX             50.0
 #define LY             1.0
 #define LZ             50.0
