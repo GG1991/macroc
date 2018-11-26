@@ -85,3 +85,18 @@ int64_t get_non_linear_gps(int time_s)
 
 	return count;
 }
+
+
+/*
+ * Returns the <f_trial_max> across of all processes
+ */
+
+double get_f_trial_max(void)
+{
+	double mpi_f_trial_max = micropp_C_get_f_trial_max();
+	double f_trial_max;
+
+	MPI_Reduce(&mpi_f_trial_max, &f_trial_max, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+
+	return mpi_f_trial_max;
+}
