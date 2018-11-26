@@ -26,7 +26,7 @@ int main(int argc,char **args)
 {
 	PetscErrorCode ierr;
 	double t1, t2;
-	double norm;
+	double norm, norm_0;
 	int time_s, newton_it;
 	FILE *file_out;
 
@@ -66,7 +66,12 @@ int main(int argc,char **args)
 			ierr = assembly_res(b);
 			ierr = VecNorm(b, NORM_2, &norm); CHKERRQ(ierr);
 			PetscPrintf(PETSC_COMM_WORLD, "|RES| = %e\n", norm);
-			if (norm < newton_min_tol) break;
+
+			if (newton_it == 0)
+				norm_0 = norm;
+
+			if (norm < newton_min_tol || norm < norm_0 * newton_rel_tol)
+			       	break;
 
 			ierr = assembly_jac(A);
 			ierr = solve_Ax(ksp, b, du);
