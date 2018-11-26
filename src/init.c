@@ -60,16 +60,20 @@ PetscErrorCode init()
 	vtu_freq = VTU_FREQ;
 	newton_max_its = NEWTON_MAX_ITS;
 	newton_min_tol = NEWTON_MIN_TOL;
+	newton_rel_tol = NEWTON_REL_TOL;
 	bc_type = BC_CIRCLE;
 
 	PetscOptionsGetReal(NULL, NULL, "-dt", &dt, NULL);
 	PetscOptionsGetReal(NULL, NULL, "-lx", &lx, NULL);
 	PetscOptionsGetReal(NULL, NULL, "-ly", &ly, NULL);
 	PetscOptionsGetReal(NULL, NULL, "-lz", &lz, NULL);
-	PetscOptionsGetReal(NULL, NULL, "-new_tol", &newton_min_tol, NULL);
 	PetscOptionsGetInt(NULL, NULL, "-ts", &ts, NULL);
 	PetscOptionsGetInt(NULL, NULL, "-vtu_freq", &vtu_freq, NULL);
-	PetscOptionsGetInt(NULL, NULL, "-new_its", &newton_max_its, NULL);
+
+	PetscOptionsGetReal(NULL, NULL, "-newton_min_tol", &newton_min_tol, NULL);
+	PetscOptionsGetReal(NULL, NULL, "-newton_rel_tol", &newton_rel_tol, NULL);
+	PetscOptionsGetInt(NULL, NULL, "-newton_max_its", &newton_max_its, NULL);
+
 	PetscOptionsGetInt(NULL, NULL, "-bc_type", &bc_type, NULL);
 
 	PetscInt nmax = 4;

@@ -33,8 +33,9 @@
 #define NPE            8
 #define NVOI           6
 #define DIM            3
+#define NEWTON_REL_TOL 1.0e-4
 #define NEWTON_MIN_TOL 1.0e-1
-#define NEWTON_MAX_ITS 2
+#define NEWTON_MAX_ITS 5
 
 #define FINAL_TIME     1.0
 #define TIME_STEPS     1
@@ -76,7 +77,10 @@ PetscReal dt, final_time;
 PetscReal newton_min_tol;
 PetscInt ts;
 PetscInt vtu_freq;
+
 PetscInt newton_max_its;
+double newton_rel_tol;
+
 PetscInt bc_type;
 PetscInt *index_dirichlet;
 PetscInt *index_dirichlet_positive;
@@ -151,6 +155,7 @@ PetscErrorCode bc_init_circle(DM da, PetscInt **_index_dirichlet, PetscInt *_nbc
 PetscErrorCode bc_finish(PetscInt *index_dirichlet);
 
 int64_t get_non_linear_gps(int time_s);
+double get_f_trial_max(void);
 
 double calc_force(DM da);
 PetscErrorCode calc_force_bending(DM da, PetscReal *_mpi_force);

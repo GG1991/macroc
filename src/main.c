@@ -26,7 +26,7 @@ int main(int argc,char **args)
 {
 	PetscErrorCode ierr;
 	double t1, t2;
-	double norm;
+	double norm, norm_0;
 	int time_s, newton_it;
 	FILE *file_out;
 
@@ -34,7 +34,7 @@ int main(int argc,char **args)
 	if(ierr)
 		return ierr;
 
-	PetscFOpen(PETSC_COMM_WORLD, "f_vs_d.dat", "w", &file_out);
+	PetscFOpen(PETSC_COMM_WORLD, "info.dat", "w", &file_out);
 	PetscPrintf(PETSC_COMM_WORLD, "\nMacroC : A HPC for FE2 Multi-scale Simulations\n\n");
 
 	ierr = init();
@@ -66,7 +66,12 @@ int main(int argc,char **args)
 			ierr = assembly_res(b);
 			ierr = VecNorm(b, NORM_2, &norm); CHKERRQ(ierr);
 			PetscPrintf(PETSC_COMM_WORLD, "|RES| = %e\n", norm);
-			if (norm < newton_min_tol) break;
+
+			if (newton_it == 0)
+				norm_0 = norm;
+
+			if (norm < newton_min_tol || norm < norm_0 * newton_rel_tol)
+			       	break;
 
 			ierr = assembly_jac(A);
 			ierr = solve_Ax(ksp, b, du);
@@ -80,13 +85,16 @@ int main(int argc,char **args)
 
 		/* Output the solution */
 
-		double force = calc_force(da);
-
-		PetscFPrintf(PETSC_COMM_WORLD, file_out, "%d\t%e\t%e\t%e\n",
-			     time_s, time_s * dt, U, force);
-
 		int64_t non_linear_micro_gps = get_non_linear_gps(time_s);
 		PetscPrintf(PETSC_COMM_WORLD, "Non-Linear Gauss points : %ld\n", non_linear_micro_gps);
+
+		double force = calc_force(da);
+
+		double f_trial_max = get_f_trial_max();
+		PetscPrintf(PETSC_COMM_WORLD, "F_trial_max             : %e\n", f_trial_max);
+
+		PetscFPrintf(PETSC_COMM_WORLD, file_out, "%d\t%e\t%e\t%e\t%e\t%d\n",
+			     time_s, time_s * dt, U, force, f_trial_max, non_linear_micro_gps);
 
 
 		if (vtu_freq > 0 && time_s % vtu_freq == 0) {
