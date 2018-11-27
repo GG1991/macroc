@@ -98,5 +98,5 @@ double get_f_trial_max(void)
 
 	MPI_Reduce(&mpi_f_trial_max, &f_trial_max, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 
-	return mpi_f_trial_max;
+	return f_trial_max;
 }
