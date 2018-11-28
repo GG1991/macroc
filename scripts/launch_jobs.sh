@@ -37,7 +37,7 @@ echo -e \
 #SBATCH --qos=${queue}
 #SBATCH --time=${HS}:${MIN}:00
 
-srun -n ${NPROC} ./macroc \\
+srun -n ${NPROC} ${EXEC} \\
 	-da_grid_x $NX -da_grid_y $NY -da_grid_z $NZ \\
 	-vtu_freq ${VTU_FREQ} \\
 	-new_its 4 \\
