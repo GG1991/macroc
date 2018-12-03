@@ -5,22 +5,26 @@
 path="/gpfs/projects/bsc21/bsc21774"
 today=$(date +%d-%m-%Y)
 folder="${path}/macroc-${today}"
-queue="bsc_case"
 
 EXEC="~/GIT/macroc/build/macroc"
 
 mkdir -p ${folder}
 
-NPROC=480
-NX=100
-NY=5
-NZ=100
+NPROC=4
+NX=50
+NY=3
+NZ=50
 MICRON=10
 VTU_FREQ=-1
-HS=01
+HS=02
 MIN=00
 
-subfolder="NN_$((NX * NY * NZ))_MICRON_$((MICRON * MICRON * MICRON))_NP_${NPROC}"
+#QUEUE="bsc_case"
+QUEUE="interactive"
+#QUEUE="debug"
+#QUEUE="xlarge"
+
+subfolder="NN_$((NX * NY * NZ))_MICRON_$((MICRON * MICRON * MICRON))_NP_${NPROC}_${QUEUE}"
 execfolder="${folder}/${subfolder}"
 
 mkdir -p ${execfolder}
@@ -34,7 +38,7 @@ echo -e \
 #SBATCH --error=macro_%j.err
 #SBATCH --cpus-per-task=1
 #SBATCH --ntasks=${NPROC}
-#SBATCH --qos=${queue}
+#SBATCH --qos=${QUEUE}
 #SBATCH --time=${HS}:${MIN}:00
 
 srun -n ${NPROC} ${EXEC} \\
