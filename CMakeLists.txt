@@ -7,7 +7,7 @@ find_package(MPI REQUIRED)
 find_library(
 	PETSC_LIB petsc
 	PATHS ENV PETSC_DIR
-	PATH_SUFFIXES "$ENV{PETSC_ARCH}/lib"
+	PATH_SUFFIXES "$ENV{PETSC_ARCH}/lib" "lib"
 	)
 
 find_path(
@@ -19,7 +19,7 @@ find_path(
 find_path(
 	PETSC_INC_B petscconf.h
 	PATHS ENV PETSC_DIR
-	PATH_SUFFIXES "$ENV{PETSC_ARCH}/include"
+	PATH_SUFFIXES "$ENV{PETSC_ARCH}/include" "include"
 	)
 
 set(PETSC_INC ${PETSC_INC_A} ${PETSC_INC_B})
